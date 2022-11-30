@@ -1,0 +1,176 @@
+{% extends 'loan/base.html' %}
+{% load static %}
+{% load humanize %}
+{% block content %}
+<main>
+    
+    <div id="detail">
+    <div class="container-fluid px-4">
+      <h1 class="mt-4">Dashboard</h1>
+      
+
+        <div class="row">
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-primary text-white mb-4">
+                    <div class="card-body">Number of Loans Scheme-I</div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        {{sc1.tl}}
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-warning text-white mb-4">
+                    <div class="card-body">Number of Loans Scheme-II</div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        {{sc2.tl}}
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-success text-white mb-4">
+                    <div class="card-body">Number of Loans Scheme-III</div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        {{sc3.tl}}
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-danger text-white mb-4">
+                    <div class="card-body">Total Number of Loans</div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        {{l.tl}}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xl">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-chart-column me-1"></i>
+                        Year-wise Loans Receivable
+                    </div>
+                    <div class="card-body"><div width="100%" id="columnchart_values">
+                        <script type="text/javascript">
+                          google.charts.load("current", { packages: ['corechart'] });
+                          google.charts.setOnLoadCallback(drawChart);
+                          function drawChart() {
+                            var data = google.visualization.arrayToDataTable([
+                              ["Element", "Recovery Rs.", { role: "style" }],
+                              ["2022-23", {% if fy22.r22 %}{{ fy22.r22 }}{% endif %}, "#00cc00"],
+                          ["2023-24", {% if fy23.r23 %}{{ fy23.r23 }}{% endif %}, "#e600ac"],
+                            ["2024-25",{% if fy24.r24 %} {{ fy24.r24 }}{% endif %}, "gold"],
+                            ["2025-26", {% if fy25.r25 %}{{ fy25.r25 }}{% endif %}, "color: #0052cc"],
+                            ["2026-27", {% if fy26.r26 %}{{ fy26.r26 }} {% endif %}, "green"],
+                            ["2027-28", {% if fy27.r27 %}{{ fy27.r27 }} {% endif %}, "pink"],
+                            ["2028-29", {% if fy28.r28 %}{{ fy28.r28 }} {% endif %}, "#990000"],
+                            ["2029-30", {% if fy29.r29 %}{{ fy29.r29 }} {% endif %}, "grey"],
+                            ["2030-31", {% if fy30.r30 %}{{ fy30.r30 }} {% endif %}, "#00cccc"],
+                            ["2031-32 & beyond", {% if fy31.r31 %}{{ fy31.r31 }} {% endif %}, "#99cc00"]
+                          ]);
+                    
+                          var view = new google.visualization.DataView(data);
+                          view.setColumns([0, 1,
+                            {
+                              calc: "stringify",
+                              sourceColumn: 1,
+                              type: "string",
+                              role: "annotation"
+                            },
+                            2]);
+                    
+                          var options = {
+                            title: "Receivable Loan Year-wise",
+                            width: "100%",
+                            height: 600,
+                            bar: { groupWidth: "95%" },
+                            legend: { position: "none" },
+                          };
+                          var chart = new google.visualization.ColumnChart(document.getElementById("columnchart_values"));
+                          chart.draw(view, options);
+                      }
+                        </script>
+                      </div></div>
+                </div>
+            </div>
+            
+        </div>
+        <div class="row">
+            <div class="col-xl-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-table me-1"></i>
+                       Year-wise Loans Receivable
+                    </div>
+                    <div class="card-body"><table class="table table-borderd">
+                        <thead>
+                            <tr><th>FY</th><th>Loan Receivable (Rs.)</th></tr></thead>
+                <tr>
+                  <td>2022-23</td>
+                  <td>{{ fy22.r22 | intcomma}}</td>
+                </tr>
+                <tr>
+                  <td>2023-24</td>
+                  <td>{{ fy23.r23 | intcomma}}</td>
+                </tr>
+                <tr>
+                  <td>2024-25</td>
+                  <td>{{fy24.r24 | intcomma}}</td>
+                </tr>
+                <tr>
+                  <td>2025-26</td>
+                  <td>{{fy25.r25 | intcomma}}</td>
+                </tr>
+                <tr>
+                  <td>2026-27</td>
+                  <td>{{ fy26.r26 | intcomma }}</td>
+                </tr>
+                <tr>
+                  <td>2027-28</td>
+                  <td>{{ fy27.r27 | intcomma }}</td>
+                </tr>
+                <tr>
+                  <td>2028-29</td>
+                  <td>{{ fy28.r28 | intcomma }}</td>
+                </tr>
+                <tr>
+                  <td>2029-30</td>
+                  <td>{{ fy29.r29 | intcomma }}</td>
+                </tr>
+                <tr>
+                  <td>2030-31</td>
+                  <td>{{ fy30.r30 | intcomma }}</td>
+                </tr>
+                <tr>
+                  <td>2031-32</td>
+                  <td>{{ fy31.r31 | intcomma }}</td>
+                </tr>
+              <tr><td>Total</td><td>{{tr.total | intcomma}}</td></tr>
+              </table></div>
+                </div>
+            </div>
+            <div class="col-xl-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-table me-1"></i>
+                        Loans Disbursment
+                    </div>
+                    <div class="card-body"><table class="table table-borderd">
+                        <thead> <tr>
+                        <th>Loan No.</th><th>Scheme#</th><th>Disbursment Date</th><th>Amount (Rs.)</th><th>Delete</th>
+                      </tr></thead>
+                      {% for l in loan %}
+                      <tr><td>{{l.loan_no}}</td><td>{{l.loan_scheme}}</td><td>{{l.disbursment_date}}</td><td>{{l.loan_amount | intcomma }}</td><td><form action="{% url 'loan:delete' l.loan_no %}" method="POST">{% csrf_token %}<input type="submit" value="Delete" class="btn btn-primary"> </form></td></tr>
+                      
+                      {% endfor %}
+                      <tr><td colspan="3">Total</td><td>{{tl.total| intcomma }}</td></tr>
+                    </table></div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+</main>
+{% endblock content %}

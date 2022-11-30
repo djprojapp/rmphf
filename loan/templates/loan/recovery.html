@@ -1,0 +1,54 @@
+{% extends 'loan/base.html' %}
+{% block content %}
+
+<main>
+  
+  <div class="card-header bg-white"><h3 class="text-center font-weight-light my-4">New Disbursment</h3></div>
+  <div class="container">
+    
+    <div class="row justify-content-center">
+      <div class="col-lg-5">
+       
+        
+          
+            <table>
+              <form action="recovery" method="post" class="d-inline">
+                {% csrf_token %}
+                <tr>
+                  <td><label> Loan No.</label></td>
+                  <td><input type="integer" name="loan_no" required></td>
+                </tr>
+                <tr>
+                  <td><label> Loan Scheme</label></td>
+                  <td><select type="integer" name="loan_scheme" required>
+                      <option value="1" selected>Scheme-I</option>
+                      <option value="2">Scheme-II</option>
+                      <option value="3">Scheme-III</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td><label> Loan Amount Rs.</label></td>
+                  <td><input type="integer" name="loan_amount" required></td>
+                </tr>
+                <tr>
+                  <td><label> Loan Disbursment Date</label></td>
+                  <td><input type="text" name="disbursment_date" required></td>
+                </tr>
+                <tr>
+                  
+                    <td colspan=2, style="text-align:center;"><input type="submit" value="Save" class="btn btn-info"></td>
+                
+                  
+                </tr>
+              </form>
+            </table>
+          
+          
+        
+      </div>
+    </div>
+  </div>
+</main>
+
+{% endblock content %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %} Pensioner Management System {% endblock title %}
+{% block content %}
+<form action="add_ba" method="post" class="form d-inline">
+    {% csrf_token %}   <table class="form">
+        <tr>
+            <td><label>PPO</label></td><td><input type="text" name="ppo" ></td> <td colspan="2" style="text-align:center;"><input class="bg-primary" type="submit" value="Add Bank Account"></td>
+        </tr>
+        
+        
+    </table>
+</form>
+{% for i in p %}
+<form action="add_bankaccount/{{i.ppo}}" method="POST">
+    {% csrf_token %}
+    <table class="table table-borderless">
+       
+        
+        <tr>
+            <td><label>PPO No.</label></td>
+            <td>{{i.ppo}}</td>
+        </tr>
+        <tr>
+            <td><label>Pensioner Name</label></td>
+            <td><input type="text" name="pname" value=""></td>
+        </tr>
+        <tr>
+            <td><label>Bank</label></td>
+            <td><input type="text" name="bname" value=""></td>
+        </tr>
+        <tr>
+            <td><label>Branch</label></td>
+        <td><input type="text" name="bb" value=""></td>
+        </tr>
+        <tr>
+            <td><label>Account No.</label></td>
+        <td><input type="text" name="acctno" value=""></td>
+        </tr>
+        <tr>
+            <td><label>Payment Ratio</label></td>
+        <td><input type="float" name="payment_ratio" value=""></td>
+        </tr>
+        <tr>
+            <td><input type="submit" value="Add"></td>
+        </tr>
+{% endfor %}
+    </table>
+
+</form>
+
+{% endblock content %}

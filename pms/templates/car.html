@@ -1,0 +1,192 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>{% block title %}Pensioner Management System{% endblock %}</title>
+    <link href="{% static 'img/favicon.ico' %}" rel="icon">
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        td {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+
+<body>
+    {% load humanize %}
+    {% block content %}
+    <div class="container-fluid row">
+        <div class="col-4">
+            <form class="form-control" action="" method="POST">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col">
+                        <label class="form label">Name</label>
+                    </div>
+                    <div class="col">
+                        <input type="text" name="name" value="{{profile.name}}" placeholder="Name">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label class="form-label">Basic Pay Scale No.</label>
+                    </div>
+                    <div class="col">
+                        <input type="integer" name="bps" value="{{profile.bps}}" placeholder="Basic Pay Scale No.">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label class="form-label">Revised Scale</label>
+                    </div>
+                    <div class="col">
+                        <input type="integer" name="rbs" value="{{profile.rbs}}" placeholder="Revised Scale">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label class="form-label">Pay</label>
+                    </div>
+                    <div class="col">
+                        <input type="integer" name="pay" value="{{profile.pay}}" placeholder="Basic pay">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label class="form-label">Date of Birth</label>
+                    </div>
+                    <div class="col">
+                        <input type="text" name="dob" value="{{profile.dob}}" placeholder="dd/mm/yyyy">
+
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label class="form-label">Date of Appointment</label>
+                    </div>
+                    <div class="col">
+                        <input type="text" name="doa" value="{{profile.doa}}" placeholder="dd/mm/yyyy">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label class="form-label">Date of Retirement</label>
+                    </div>
+                    <div class="col">
+                        <input type="text" name="dor" value="{{profile.dor}}" placeholder="dd/mm/yyyy">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label class="form-label">Date of Death</label>
+                    </div>
+                    <div class="col">
+                        <input type="text" name="dod" value="{{profile.dod}}" placeholder="dd/mm/yyyy">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label class="form-label">Date of Birth Family Pensioner</label>
+                    </div>
+                    <div class="col">
+                        <input type="text" name="dobf" value="{{profile.dobf}}"
+                            placeholder="dd/mm/yyyy">
+                    </div>
+
+                </div>
+                <div class="row">
+
+                    <div class="col text-danger text-right">
+                        <label class="form-label">{{message}}</label>
+                    </div>
+                </div>
+                <div style="text-align:center;">
+
+                    <button class="btn btn-primary" type="submit" name="listcontent">Calculate</button>
+                    <button class="btn btn-danger" type="submit" name="reset">Reset</button>
+                </div>
+
+            </form>
+
+
+        </div>
+        <div class="col-8">
+            <div class="table" id="elem">
+                <table class=" table table-striped">
+                    <tr>
+                        <td colspan="5" style="text-align:center; font-size:large">ACCOUNTANT GENERAL PAKISTAN REVENUES
+                            SUB OFFICE LAHORE</td>
+                    </tr>
+
+                    <tr>
+                        <td>Name: {{profile.name|title}}</td>
+                        <td>BS-{{profile.bps}}</td>
+                        <td>Revised Scale-{{profile.rbs}}</td>
+                        <td colspan="2">Pay Rs.{{profile.pay}}</td>
+
+                    </tr>
+                    <tr>
+                        <td>DOB:{{profile.dob}}</td>
+                        <td>DOA:{{profile.doa}}</td>
+                        <td>DOR:{{profile.dor}}</td>
+                        <td>DOD:{{profile.dod}}</td>
+                        <td>DOB Family:{{profile.dobf}}</td>
+                    <tr>
+                        <td>Pension Type:{{profile.cat}}</td>
+                        <td>Gross Pension:{{profile.gp}}</td>
+                        <td>Net Pension:{{profile.npo}}</td>
+                        <td colspan="2">Commutation Rs.{{profile.comm_amount}}</td>
+                    </tr>
+                    </tr>
+                    <tr>
+                        <td>Remarks</td>
+                        <td>w.e.f.</td>
+                        <td>Rate</td>
+                        <td>Amount</td>
+                        <td>Net Pension</td>
+                    </tr>
+                    {% for l,k,m,n,o in inc %}
+                    <tr>
+                        <td>{{l}}</td>
+                        <td>{{k}}</td>
+                        <td>@{{m}}%</td>
+                        <td>Rs.{{n}}</td>
+                        <td>Rs.{{o}}</td>
+                    </tr>
+
+                    {% endfor block %}
+
+                </table>
+
+            </div>
+            <div style="text-align:center;">
+                <button class="btn btn-primary" type="submit" onclick="printDiv('elem')">Print C&R</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        function printDiv(elem) {
+            var mywindow = window.open();
+            var content = document.getElementById(elem).innerHTML;
+            var realContent = document.body.innerHTML;
+            mywindow.document.write(content);
+            mywindow.document.write('<link href="{% static 'css / bootstrap.min.css' %}" rel="stylesheet">');
+            mywindow.document.write('<style> td {border:1px solid black;}</style>');
+            mywindow.document.close(); // necessary for IE >= 10
+            mywindow.focus(); // necessary for IE >= 10*/
+            mywindow.print();
+            document.body.innerHTML = realContent;
+            mywindow.close();
+            return true;
+        }
+    </script>
+    <a href="/">Main Page</a>
+    {% endblock content %}
+
+</body>
+
+</html>

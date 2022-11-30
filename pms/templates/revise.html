@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %} Pensioner Management System {% endblock title %}
+{% block content %}
+
+<h3>Revise Pensioner</h3>
+
+<div class="container">
+  <form action="revise" method="POST">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-info">PPO NO.</button>
+    <input type="integer" name="id" placeholder="PPO NO." required>
+
+  </form>
+  {% for p in status %}
+  <form class="form-floating" action="/update/{{p.pensioner.ppo}}" method="POST" class="form-inline">
+
+    {% csrf_token %}
+
+
+    <table class="table table-responsive table-borderless">
+
+
+
+
+      <tr>
+        <td><label>Status</label></td>
+        <td><select type="text" name="status" class="form-select">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="{{p.status}}" selected>{{p.status}}</option>
+          </select>
+        </td>
+      </tr>
+
+      <tr>
+        <td><label>PPO No.</label></td>
+        <td><input type="text" name="ppo" placeholder="PPO No." value="{{p.pensioner.ppo}}"></td>
+        <td><label>Applicable Scale</label></td>
+        <td><input type="text" name="rbs" placeholder="Applicable Scale" value="{{p.pensioner.rbs}}" required></td>
+      </tr>
+      <tr>
+        <td><label>Name</label></td>
+        <td><input type="text" name="name" placeholder="Name" value="{{p.pensioner.name}}" required></td>
+        <td><label>Father's Name</label></td>
+        <td><input type="text" name="fname" placeholder="Father's Name" value="{{p.pensioner.fname}}" required>
+      </tr>
+      <tr>
+        <td><label>BPS No.</label></td>
+        <td><input type="text" name="bps" placeholder="BPS No." value="{{p.pensioner.bps}}" required></td>
+        <td><label>Designation</label></td>
+        <td><input type="text" name="designation" placeholder="Designation" value="{{p.pensioner.designation}}"
+            required>
+      </tr>
+      <tr>
+        <td><label>CNIC No.</label></td>
+        <td><input type="text" name="cnic" placeholder="CNIC No." value="{{p.pensioner.cnic}}" required></td>
+        <td><label>Address</label></td>
+        <td><input type="text" name="address" placeholder="Address" value="{{p.pensioner.address}}" required></td>
+      </tr>
+      <tr>
+        <td><label>Basic Pay</label></td>
+        <td><input type="integer" name="pay" placeholder="Pay" value="{{p.pensioner.pay}}" required></td>
+        <td><label>Qualification Pay</label></td>
+        <td><input type="integer" name="qpay" placeholder="Qualification Pay" value="{{p.pensioner.qpay}}"></td>
+      </tr>
+      <tr>
+        <td><label>Personal Pay</label></td>
+        <td><input type="integer" name="ppay" placeholder="Personal Pay" value="{{p.pensioner.ppay}}"></td>
+        <td><label>Special Pay</label></td>
+        <td><input type="integer" name="spay" placeholder="Special Pay" value="{{p.pensioner.spay}}"></td>
+      </tr>
+      <tr>
+        <td><label>Usual Increment</label></td>
+        <td><input type="integer" name="ui" placeholder="Usual Increment" value="{{p.pensioner.ui}}"></td>
+        <td><label>Other Pay</label></td>
+        <td><input type="integer" name="opay" placeholder="Other Pay" value="{{p.pensioner.opay}}"></td>
+
+      </tr>
+
+      <tr>
+        <td><label for="dob">Date of Birth</label></td>
+        <td><input type="text" name="dob" placeholder="(dd-mm-yyyy)" value="{{p.pensioner.dob}}" required></td>
+        <td><label for="doa">Date of Appointment</label></td>
+        <td><input type="text" name="doa" placeholder="(dd-mm-yyyy)" value="{{p.pensioner.doa}}" required></td>
+      </tr>
+      <tr>
+      <tr>
+        <td><label for="dor">Date of Retirement</label></td>
+        <td><input type="text" name="dor" placeholder="(dd-mm-yyyy)" value="{{p.pensioner.dor}}"></td>
+        <td><label for="dod">Date of Death</label></td>
+        <td><input type="text" name="dod" placeholder="(dd-mm-yyyy)" value="{{p.pensioner.dod}}"></td>
+      </tr>
+      <tr>
+        <td><label for="dobf">Date of Birth Family Pensioner</label></td>
+        <td><input type="text" name="dobf" placeholder="(dd-mm-yyyy)" value="{{p.pensioner.dobf}}"></td>
+      </tr>
+
+      
+
+    </table>
+    <button type="submit" class="btn btn-success">Update</button>
+    {% endfor block %}
+    
+  </form>
+
+
+</div>
+
+
+
+
+
+{% endblock content %}

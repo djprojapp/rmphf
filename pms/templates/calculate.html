@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %} Pensioner Management System {% endblock title %}
+{% block content %}
+
+<h3>Calculate Pension</h3>
+
+<div class="container">
+  <form action="calculate" method="POST">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-info">Pensioner ID</button>
+    <input type="integer" name="id" placeholder="Pensioner ID" required>
+
+  </form>
+</div>
+<div class="container" style="height: auto; width:500px; float:left">
+  {% for pensioner in pensioner %}
+  <form class="form-group inline-block" action="/calculator/{{pensioner.ppo}}" method="POST" class="form-inline">
+    {% csrf_token %}
+
+    <table class="table table-borderless table-responsive">
+      <tr>
+        <td><label for="name">ID</label></td>
+        <td> <input type="text" name="id" value="{{pensioner.ppo}}" required></td>
+      </tr>
+      <tr>
+        <td><label for="name">Name</label></td>
+        <td> <input type="text" name="name" value="{{pensioner.name}}" required></td>
+      </tr>
+      <!--<tr><td><label for="pay" class="col-sm">Basic Pay</label></td><td> <input type="integer" name="pay" value="{{pensioner.pay}}" required></td></tr>
+            <tr><td><label for="bps" class="col-sm">BPS No.</label></td><td> <input type="integer" name="bps" value="{{pensioner.bps}}" required></td></tr>
+            <tr><td><label for="rbs" class="col-sm">Applicable Scales</label></td><td> <input type="integer" name="rbs" value="{{pensioner.rbs}}" required></td></tr>
+            <tr><td><label for="dob">Date of Birth</label></td><td> <input type="text" name="dob" value="{{pensioner.dob}}" required></td></tr>
+            <tr><td><label for="doa">Date of Appointment</label></td><td> <input type="text" name="doa" value="{{pensioner.doa}}" required></td></tr>
+            <tr><td><label for="dor">Date of Retirement</label></td><td> <input type="text" name="dor" value="{{pensioner.dor}}" required></td></tr> -->
+      <tr>
+        <td colspan="2" style="text-align: center;"><button type="submit" class="btn btn-success">Calculate
+            Pension</button></td>
+      </tr>
+
+    </table>
+  </form>
+</div>
+{% endfor %}
+
+
+
+
+
+
+
+{% endblock content %}
