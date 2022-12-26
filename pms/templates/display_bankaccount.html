@@ -1,11 +1,12 @@
 {% extends "base.html" %}
-{% block title %} Pensioner Management System {% endblock title %}
+{% block title %} Bank Accounts {% endblock title %}
 {% block content %}
-
+<h3 class="bg-secondary text-center text-white">Bank Accounts List</h3>
+<div class="container">
 <form action="search" method="post">
     {% csrf_token %}
-    <label>PPO No.</label><input type="text" name="ppo">
-    <input type="submit" value="View">
+    <input type="text" placeholder="Search by PPO, Name or Bank" name="ppo">
+    <input class="btn btn-info" type="submit" value="Search">
 </form>
 {% if ba %}
 
@@ -43,5 +44,5 @@
     
 </table>
 
-
+</div>
 {% endblock content %}

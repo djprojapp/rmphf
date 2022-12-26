@@ -1,19 +1,20 @@
 {% extends "base.html" %}
-{% block title %} Pensioner Management System {% endblock title %}
+{% block title %} Pension Roll {% endblock title %}
 {% block content %}
-<form action="payment" method="post" class="form d-inline">
+<h3 class="bg-info text-center text-white">Process Monthly Pension Roll</h3>
+<form action="payment" method="post" class="form d-inline" id="myForm" onsubmit="return validateForm()">
     {% csrf_token %}
 
     <table class="form">
         <tr>
-            <td><label>Month</label></td><td><input type="text" name="from" ></td>
+            <td><label>Month</label></td><td><input type="text" name="from" required></td>
         </tr>
         <tr>
-            <td><label>Year</label></td><td><input type="text" name="to"  ></td>
+            <td><label>Year</label></td><td><input type="text" name="to" required ></td>
 
         </tr>
         <tr>
-            <td colspan="2" style="text-align:center;"><input class="bg-secondary" type="submit" value="Process Payment"></td>
+            <td colspan="2" style="text-align:center;"><input class="bg-info" type="submit" value="Process Payment"></td>
         </tr>
     </table>
 
@@ -22,16 +23,16 @@
 
     
 </form>
-{% if p %}
-<table class="table table-striped">
-    <tr><th>PPO</th><th>Name</th><th>Month</th><th>Bank Account</th><th>Amount</th></tr>
-    {% for i in p %}
-
-    <tr><td>{{i.ppo}}</td><td>{{i.pname}} </td><td>{{i.month}}/{{i.year}}</td><td>{{i.bb}}-{{i.acctno}}</td><td>{{i.tp | floatformat:0}}</td></tr>
-
-    
-    {% endfor %}
-</table>
-
-{% endif %}
+{{msg}}
+{{errlist}}
+<script>
+    function validateForm() {
+      let x = document.forms["myForm"]["from"].value;
+      let y = document.forms["myForm"]["to"].value;
+      if (x >12 || y<2022) {
+        alert("moth should be 1-12 and year below 2022 not allowed");
+        return false;
+      }
+    }
+    </script>
 {% endblock content %}

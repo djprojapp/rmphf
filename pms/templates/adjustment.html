@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+{% block title %} Pension Adjustments {% endblock title %}
+{% block content %}
+
+<h3 class="bg-info text-center text-white">Pension Adjustments for Next Pension Roll</h3>
+
+{% if p %}
+<form action="adjustments" method="POST">
+    {% csrf_token %}
+    <table class="table table-responsive table-borderless">
+    {% for i in p %}
+    <tr>
+      <td>
+        <button type="submit" class="btn btn-info">PPO NO.</button>
+      </td>
+      <td>
+        <input type="integer" name="ppo" placeholder="PPO NO." value="{{i.ppo}}" required>
+      </td>
+    </tr>
+    
+    
+{% endfor %}
+  </form>
+  {% else %}
+  <form action="adjustments" method="POST">
+    {% csrf_token %}
+    <table class="table table-responsive table-borderless">
+      <tr>
+        <td>
+          <button type="submit" class="btn btn-info">PPO NO.</button>
+        </td>
+        <td>
+          <input type="integer" name="ppo" placeholder="PPO NO." value="{{i.ppo}}" required>
+        </td>
+      </tr>
+    </table>
+  </form>
+  {% endif %}
+{% for i in p %}
+  <form class="form-floating" action="adjustment/{{i.ppo}}" method="POST" class="form-inline">
+    {% csrf_token %}
+
+    
+      
+      
+
+      <tr>
+        <td><label>Descriptsion</label></td>
+        <td><input type="text" name="description" placeholder="Description" value="{{i.description}}" required></td>
+        
+      </tr>
+      <tr>
+        <td><label>Amount</label></td>
+        <td><input type="integer" name="amount" placeholder="Amount" value="{{i.amount}}" required></td>
+        
+      </tr>
+      <tr>
+        <td><label>Payment Type</label></td>
+        <td><input type="text" name="p_type" placeholder="p for payment d for recovery" value="{{i.p_type}}" required></td>
+        
+      </tr>
+      <tr>
+        <td colspan="2" class="text-center"><button class="btn btn-info" type="submit">Save</button></td>
+        
+        
+      </tr>
+    
+
+</form>
+{% endfor %}
+</table>
+{% endblock content %}

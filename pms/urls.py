@@ -21,7 +21,14 @@ urlpatterns=[
     path('delete_bankaccount/<int:id>', views.delete_bankaccount, name="delete_bankaccount"),
     path('edit_bankaccount/<int:id>', views.edit_bankaccount, name="edit_bankaccount"),
     path('edit_ba/<int:id>', views.edit_ba, name="edit_ba"),
-    path('search', views.search, name="search")
+    path('search', views.search, name="search"),
+    path('adjustments', views.adjustments, name="adjustments"),
+    path('adjustment/<int:ppo>', views.adjustment, name="adjustment"),
+    path('recovery', views.recovery, name="recovery"),
+    path('rop/<int:ppo>', views.rop, name="rop"),
+    path('self', views.self, name="self"),
+    path('family-dis', views.family_dis, name="family-dis"),
+    path('family-dar', views.family_dar, name="family-dar"),
     
     
     

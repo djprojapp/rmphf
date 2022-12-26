@@ -1,45 +1,88 @@
 {% extends "base.html" %}
-{% block title %} Pensioner Management System {% endblock title %}
+{% block title %} Calculate pension {% endblock title %}
 {% block content %}
+<h3 class="bg-info text-center text-white">Pension Calculator</h3>
 
-<h3>Calculate Pension</h3>
+  {% if pensioner %}
+  
+    
+    {% for p in pensioner %}
+    <form class="form-group inline-block" action="calculate" method="POST">
+      {% csrf_token %}
+      <table class="table table-borderless table-responsive">
 
-<div class="container">
-  <form action="calculate" method="POST">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-info">Pensioner ID</button>
-    <input type="integer" name="id" placeholder="Pensioner ID" required>
+      <tr>
+        <td><button type="submit" class="btn btn-info">PPO NO.</button></td>
+        <td><input type="integer" name="id" placeholder="PPO NO." value="{{p.ppo}}" required></td>
+      </tr>
 
-  </form>
-</div>
-<div class="container" style="height: auto; width:500px; float:left">
+    </form>
+
+    {% endfor %}
+    {% else %}
+    
+      <form class="form-group inline-block" action="calculate" method="POST">
+        {% csrf_token %}
+        <table class="table table-borderless table-responsive">
+          <tr>
+            <td><button type="submit" class="btn btn-info">PPO NO.</button></td>
+            <td><input type="integer" name="id" placeholder="PPO NO." required></td>
+          </tr>
+        </table>
+      </form>
+   
+    {% endif %}
+
   {% for pensioner in pensioner %}
   <form class="form-group inline-block" action="/calculator/{{pensioner.ppo}}" method="POST" class="form-inline">
     {% csrf_token %}
 
-    <table class="table table-borderless table-responsive">
-      <tr>
-        <td><label for="name">ID</label></td>
-        <td> <input type="text" name="id" value="{{pensioner.ppo}}" required></td>
-      </tr>
-      <tr>
-        <td><label for="name">Name</label></td>
-        <td> <input type="text" name="name" value="{{pensioner.name}}" required></td>
-      </tr>
-      <!--<tr><td><label for="pay" class="col-sm">Basic Pay</label></td><td> <input type="integer" name="pay" value="{{pensioner.pay}}" required></td></tr>
-            <tr><td><label for="bps" class="col-sm">BPS No.</label></td><td> <input type="integer" name="bps" value="{{pensioner.bps}}" required></td></tr>
-            <tr><td><label for="rbs" class="col-sm">Applicable Scales</label></td><td> <input type="integer" name="rbs" value="{{pensioner.rbs}}" required></td></tr>
-            <tr><td><label for="dob">Date of Birth</label></td><td> <input type="text" name="dob" value="{{pensioner.dob}}" required></td></tr>
-            <tr><td><label for="doa">Date of Appointment</label></td><td> <input type="text" name="doa" value="{{pensioner.doa}}" required></td></tr>
-            <tr><td><label for="dor">Date of Retirement</label></td><td> <input type="text" name="dor" value="{{pensioner.dor}}" required></td></tr> -->
-      <tr>
-        <td colspan="2" style="text-align: center;"><button type="submit" class="btn btn-success">Calculate
-            Pension</button></td>
-      </tr>
 
+
+    <tr>
+      <td><label for="name">Name</label></td>
+      <td> <input type="text" name="name" value="{{pensioner.name}}" required></td>
+    </tr>
+    <tr>
+      <td><Label for="restoration">Restoration Allowed</Label></td>
+      <td ><span class="form-check form-check-inline">YES </span><input type="radio" name="rest_allowed" value="Yes"
+          checked><span class="form-check form-check-inline">NO </span><input type="radio" name="rest_allowed" value="No"></td>
+    </tr>
+    <tr>
+      <td><label for="pay" class="col-sm">Last Pay Drawn</label></td>
+      <td> <input type="integer" name="pay" value="{{pensioner.lpd}}" required></td>
+    </tr>
+    <tr>
+      <td><label for="bps" class="col-sm">BPS No.</label></td>
+      <td> <input type="integer" name="bps" value="{{pensioner.bps}}" required></td>
+    </tr>
+    <tr>
+      <td><label for="rbs" class="col-sm">Applicable Scales</label></td>
+      <td> <input type="integer" name="rbs" value="{{pensioner.rbs}}" required></td>
+    </tr>
+    <tr>
+      <td><label for="dob">Date of Birth</label></td>
+      <td> <input type="text" name="dob" value="{{pensioner.dob}}" required></td>
+    </tr>
+    <tr>
+      <td><label for="doa">Date of Appointment</label></td>
+      <td> <input type="text" name="doa" value="{{pensioner.doa}}" required></td>
+    </tr>
+    <tr>
+      <td><label for="dor">Date of Retirement</label></td>
+      <td> <input type="text" name="dor" value="{{pensioner.dor}}" required></td>
+    </tr>
+    <tr>
+      <td colspan="2" style="text-align: center;"><button type="submit" class="btn btn-success">Calculate
+          Pension</button></td>
+    </tr>
+    <tr class="fw-bold text-warning">
+      <td colspan="2" style="text-align: center;">If Changes are needed in pensioner's data then revise them in revise
+        pensioner link</td>
+    </tr>
     </table>
   </form>
-</div>
+
 {% endfor %}
 
 

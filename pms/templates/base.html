@@ -1,58 +1,140 @@
 {% load static %}
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-  <title>{% block title %}Pensioner Management System{% endblock %}</title>
-  <link href="{% static 'img/favicon.ico' %}" rel="icon">
-  <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
-  <script src="{% static 'js/bootstrap.min.js' %}"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
-  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <title>{% block title %}Pensioner Management System{% endblock %}</title>
+    <link href="{% static 'img/favicon.ico' %}" rel="icon">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" />
+    <link href="{% static 'css/styles.css' %}" rel="stylesheet" />
+    <script src="https://use.fontawesome.com/releases/v6.1.0/js/all.js" crossorigin="anonymous"></script>
 </head>
 
-<body>
-  {% include 'navbar.html' %}
+<body class="sb-nav-fixed">
+    <nav class="sb-topnav navbar navbar-expand bg-dark navbar-dark">
+        <!-- Navbar Brand-->
+        <a class="navbar-brand" href="/">
+            <img src="{% static 'img/favicon.jpg' %}" alt="" width="50" height="40"
+                class="d-inline-block align-text-top">
+            PMS</a>
+        <!-- Sidebar Toggle-->
+        <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" href="#!"><i
+                class="fas fa-bars"></i></button>
+        <!-- header -->
+        <span class="p-5" style="text-align:right; color:rgba(248, 244, 6, 0.96); font-family:algerian; font-size:3vw">PENSION MANAGEMENT SYSTEM</span>
+        <!-- Navbar Search-->
+        <form class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0" action="home"
+            method="post">
+            <div class="input-group">
+                {% csrf_token %}
+                <input class="form-control" type="text" placeholder="Search for..." aria-label="Search for..."
+                    aria-describedby="btnNavbarSearch" name="ppo">
+                <button class="btn btn-info" id="btnNavbarSearch" type="button"><i class="fas fa-search"></i></button>
 
-  <div class="row">
-    <div class="col-sm-2 bg-ligth flex-column p-5 bg-light">
-      <nav class="navbar bg-light">
-       
-          <ul class="navbar-nav">
-            
+            </div>
+        </form>
+        <!-- Navbar-->
+        <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-user fa-fw"></i></a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                    <li><div class="dropdown-item">{% if user.is_authenticated %}
+                        <div class="small">Logged in as:</div>
+                        {{user.username|title}}
+                    </div>
+                    {% endif %}</a></div>
+                    
+                    <li><hr class="dropdown-divider" /></li>
+                    <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">Logout</a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+    <div id="layoutSidenav">
+        <div id="layoutSidenav_nav">
+            <nav class="sb-sidenav accordion sb-sidenav-dark bg-dark" id="sidenavAccordion">
+                <div class="sb-sidenav-menu">
+                    <div class="nav">
+                        <div class="sb-sidenav-menu-heading"></div>
+                        <a class="nav-link" href="/">
+                            <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
+                            Dashboard
+                        </a>
+                        <div class="sb-sidenav-menu-heading">Main Menu</div>
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <a class="nav-link" href="{% url 'pms:add_new' %}">Add New Pensioner</a>
+                            <a class="nav-link" href="{% url 'pms:add_ba' %}">Add Bank Account</a>
+                            <a class="nav-link" href="{% url 'pms:revise' %}">Revise Pensioner</a>
+                            <a class="nav-link" href="{% url 'pms:calculate' %}">Calculate Pension</a>
+                        </nav>
+                        <a class="nav-link collapsed" href="#" data-bs-toggle="collapse"
+                            data-bs-target="#collapseLayouts" aria-expanded="false" aria-controls="collapseLayouts">
+                            <div class="sb-nav-link-icon"><i class="fas fa-columns"></i></div>
+                            Payments
+                            <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                        </a>
+                        <div class="collapse" id="collapseLayouts" aria-labelledby="headingOne"
+                            data-bs-parent="#sidenavAccordion">
+                            <nav class="sb-sidenav-menu-nested nav">
+                                <a class="nav-link" href="{% url 'pms:adjustments' %}">Adjustments</a>
+                                <a class="nav-link" href="{% url 'pms:recovery' %}">Long Term Recovery</a>
+                                <a class="nav-link" href="{% url 'pms:payment' %}">Pension Roll</a>
+                               
+                            </nav>
+                        </div>
+                        <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapsePages"
+                            aria-expanded="false" aria-controls="collapsePages">
+                            <div class="sb-nav-link-icon"><i class="fas fa-book-open"></i></div>
+                            Reports
+                            <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                        </a>
+                        <div class="collapse" id="collapsePages" aria-labelledby="headingOne"
+                            data-bs-parent="#sidenavAccordion">
+                            <nav class="sb-sidenav-menu-nested nav">
+                                <a class="nav-link" href="{% url 'pms:candr' %}">Calculation & Review</a>
+                                <a class="nav-link" href="{% url 'pms:bankadvice' %}">Bank Advice</a>
+                                <a class="nav-link" href="{% url 'pms:display_bankaccount' %}">Bank Accounts</a>
+                                <a class="nav-link" href="{% url 'pms:home' %}">All Pensioners</a>
+                               
+                            </nav>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+            </nav>
+        </div>
+        <div id="layoutSidenav_content">
+           <main>
+                {% block content %}
 
-            <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'pms:add_new' %}">Add New Pensioner</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'pms:home' %}">List of Pensioners</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'pms:revise' %}">Revise/Update</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'pms:calculate' %}">Calculate Pension</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'pms:candr' %}">Calculation & Review</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'pms:simple_calculator' %}">Pension Calculator</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'pms:payment' %}">Pension Roll</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'pms:bankadvice' %}">Bank Advice</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'pms:display_bankaccount' %}">Bank Account Details</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'pms:add_ba' %}">Add Bank Account</a></li>
-            
-           
-          </ul>
-        
-      </nav>
-
-
+                {% endblock content %}
+            </main>
+            <footer class="py-4 bg-light mt-auto">
+                <div class="container-fluid px-4">
+                    <div class="d-flex align-items-center justify-content-between large">
+                        <div class="text-muted">Copyright &copy;  {% now "Y" %}</div>
+                        
+                    </div>
+                </div>
+            </footer>
+        </div>
     </div>
-    <div class="fluid-container col-sm-8 flex-column">
-      {% block content %}
-
-
-      {% endblock %}
-    </div>
-    <div class="col-sm-2 bg-white flex-column">
-      <h3></h3>
-
-    </div>
-  </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+        crossorigin="anonymous"></script>
+    <script src="{% static 'js/scripts.js' %}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js" crossorigin="anonymous"></script>
+    <script src="{% static 'demo/chart-area-demo.js' %}"></script>
+    <script src="{% static 'demo/chart-bar-demo.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" crossorigin="anonymous"></script>
+    <script src="{% static 'js/datatables-simple-demo.js' %}"></script>
 </body>
 
 </html>

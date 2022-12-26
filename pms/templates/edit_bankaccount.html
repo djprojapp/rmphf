@@ -1,6 +1,7 @@
 {% extends "base.html" %}
-{% block title %} Pensioner Management System {% endblock title %}
+{% block title %} Bank Account Management {% endblock title %}
 {% block content %}
+<h3 class="bg-secondary text-center text-white">Edit Bank Account</h3>
 {% for e in ea %}
 <form action="/edit_bankaccount/{{e.id}}" method="POST">
     {% csrf_token %}
@@ -31,7 +32,7 @@
         <td><input type="float" name="payment_ratio" value="{{e.payment_ratio}}"></td>
         </tr>
         <tr>
-            <td><input type="submit" value="Edit"></td>
+            <td colspan="2" class="text-center"><input class="btn btn-info" type="submit" value="Edit"></td>
         </tr>
 
     </table>

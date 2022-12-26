@@ -1,42 +1,355 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block content %}
 
-<div class="container">
-  <div class="row row-cols-2 row-cols-lg-2 g-2 g-lg-3">
+<div class="container-fluid px-4">
+  <h1 class="mt-4">Dashboard</h1>
+  <ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item active">Dashboard</li>
+  </ol>
+  <div class="row">
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-primary text-white mb-4">
+        <div class="card-title text-center">Total Pensioners</div>
+        <div class="card-body text-center">
+          <h3 class="text-center">{{pensioner}}</h3>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between">
+          <a class="small text-white stretched-link" href="{% url 'pms:home' %}">View Details</a>
+          <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-warning text-white mb-4">
+        <div class="card-title text-center">Self Pensioners</div>
+        <div class="card-body text-center">
+          <h3 class="text-center">{{pen_cat3}}</h3>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between">
+          <a class="small text-white stretched-link" href="{% url 'pms:self' %}">View Details</a>
+          <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-success text-white mb-4">
+        <div class="card-title text-center">Family Pensioners (DIS)</div>
+        <div class="card-body text-center">
+          <h3 class="text-center">{{pen_cat2}}</h3>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between">
+          <a class="small text-white stretched-link" href="{% url 'pms:family-dis' %}">View Details</a>
+          <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-info text-white mb-4">
+        <div class="card-title text-center">Family Pensioners (DAR)</div>
+        <div class="card-body text-center">
+          <h3 class="text-center">{{pen_cat1}}</h3>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between">
+          <a class="small text-white stretched-link" href="{% url 'pms:family-dar' %}">View Details</a>
+          <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xl-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <i class="fas fa-chart-column me-1"></i>
+          Monthly Payments
+        </div>
+        <div class="card-body" id="piechart" style="width:100%; height:100;"></div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <i class="fas fa-chart-pie me-1"></i>
+          Total Pensioners
+        </div>
+        <div class="card-body" id="3dchart" style="width:100%; height:100;"></div>
+      </div>
+    </div>
+  </div>
+  <!-- new -->
+  <div class="row">
+    <div class="col-xl-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <i class="fas fa-table me-1"></i>
+          Monthly Payments
+        </div>
+        <div class="card-body" style="width:100%; height:40;">
+          <table class="table table-borderless">
+            <tr>
+              <td>Net Pension:</td>
+              <td>Rs. {{netpension|floatformat:0|intcomma}}</td>
+            </tr>
+            <tr>
+              <td>Medical Allowance 2010:</td>
+              <td>Rs. {{ma|floatformat:0|intcomma}}</td>
+            </tr>
+            <tr>
+              <td>Medical Allowance 2015:</td>
+              <td>Rs. {{ma2|floatformat:0|intcomma}}</td>
+            </tr>
+            <tr>
+              <td colspan="2"><hr style="width:100%; color:rgb(0, 153, 255)"></td>
+             
+            </tr>
+            <tr class="fw-bold">
+              <td>Total Monthly Payment:</td>
+              
+              <td>Rs. {{pen|floatformat:0|intcomma}}</td>
+             
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <i class="fas fa-table me-1"></i>
+          Total Pensioners
+        </div>
+        <div class="card-body" style="width:100%; height:40;">
+          <table class="table table-borderless">
+            <tr>
+              <td>Self Pensioners:</td>
+              <td>{{pen_cat3|intcomma}}</td>
+            </tr>
+            <tr>
+              <td>Family Pensioners (DIS)</td>
+              <td>{{pen_cat2|intcomma}}</td>
+            </tr>
+            <tr>
+              <td>Family Pensioners (DAR)</td>
+              <td>{{pen_cat1|intcomma}}</td>
+            </tr>
+            <tr>
+              <td colspan="2"><hr style="width:100%; color:rgb(0, 153, 255)"></td>
+             
+            </tr>
+            <tr class="fw-bold">
+              <td>Total Pensioners</td>
+              <td>{{pensioner}}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- new2 -->
+  <div class="row">
+    <div class="col-xl-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <i class="fas fa-table me-1"></i>
+          Restoration Due
+        </div>
+        <div class="card-body" style="width:100%; height:40;">
+          <table class="table table-borderless">
 
-    <div class="col ">
-      <div id="piechart" style="width: 500px; height: 300px;" class="container col-4 m-25">
-        <script type="text/javascript">
+            <tr>
+              <th>S.No.</th>
+          <th>PPO NO.</th>
+          <th>Name</th>
+          <th>Restoration Due On</th>
+        </tr>
+        {% for i in rest_due %}
+        <tr>
+          <td>{{forloop.counter}}</td>
+          <td>{{i.ppo}}</td>
+          <td>{{i.name}}</td>
+          <td>{{i.restd|date:"d-m-Y"}}</td>
+        </tr>
+        {% endfor %}
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <i class="fas fa-table me-1"></i>
+          Newest Pensioner
+        </div>
+        <div class="card-body" style="width:100%; height:40;">
+          <table class="table table-borderless">
+            <tr>
+              <th>PPO NO.</th>
+              <th>Name</th>
+            </tr>
+    
+            <tr>
+              <td>{{lts.ppo}}</td>
+              <td>{{lts.name}}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- end new2 -->
+  <div class="card mb-4">
+    <div class="card-header bg-info">
+      <i class="fas fa-table me-1"></i>
+      All Pensioners
+    </div>
+    <div class="card-body">
+      {% if status %}
+      <table class="table table-hover table-borderless table-responsive" id="datatablesSimple">
+        <thead>
+          <tr>
+            <th>PPO No.</th>
+            <th>Name</th>
+            <th>Pay</th>
+            <th>Age</th>
+            <th>Qualifying Service</th>
+            <th>Commutation Rate</th>
+            <th>Date of Birth</th>
+            <th>Date of Appointment</th>
+            <th>Date of Retirement</th>
+            <th>Date of Death</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tfoot>
+          <tr>
+            <th>PPO No.</th>
+            <th>Name</th>
+            <th>Pay</th>
+            <th>Age</th>
+            <th>Qualifying Service</th>
+            <th>Commutation Rate</th>
+            <th>Date of Birth</th>
+            <th>Date of Appointment</th>
+            <th>Date of Retirement</th>
+            <th>Date of Death</th>
+            <th>Status</th>
+          </tr>
+        </tfoot>
+        <tbody>
+          {% for i in status %}
+          <tr>
+            <td>{{i.pensioner.ppo}}</td>
+            <td>{{i.pensioner.name}}</td>
+            <td>{{i.pensioner.lpd | intcomma}}</td>
+            <td>{{i.pensioner.age}}</td>
+            <td>{{i.pensioner.qs}}</td>
+            <td>{{i.pensioner.comm_rate}}</td>
+            <td>{{i.pensioner.dob}}</td>
+            <td>{{i.pensioner.doa}}</td>
+            <td>{{i.pensioner.dor}}</td>
+            <td>{{i.pensioner.dod}}</td>
+            <td>{{i.status}}</td>
+
+
+
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+
+      <table class="table table-hover table-borderless table-responsive" id="datatablesSimple">
+        <thead>
+
+          <tr>
+            <th>PPO No.</th>
+            <th>Name</th>
+            <th>Pay</th>
+            <th>Age</th>
+            <th>Qualifying Service</th>
+            <th>Commutation Rate</th>
+            <th>Date of Birth</th>
+            <th>Date of Appointment</th>
+            <th>Date of Retirement</th>
+            <th>Date of Death</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tfoot>
+          <tr>
+            <th>PPO No.</th>
+            <th>Name</th>
+            <th>Pay</th>
+            <th>Age</th>
+            <th>Qualifying Service</th>
+            <th>Commutation Rate</th>
+            <th>Date of Birth</th>
+            <th>Date of Appointment</th>
+            <th>Date of Retirement</th>
+            <th>Date of Death</th>
+            <th>Status</th>
+          </tr>
+        </tfoot>
+        <tbody>
+          {% for i in sr %}
+          <tr>
+            <td>{{i.pensioner.ppo}}</td>
+            <td>{{i.pensioner.name}}</td>
+            <td>{{i.pensioner.lpd | intcomma}}</td>
+            <td>{{i.pensioner.age}}</td>
+            <td>{{i.pensioner.qs}}</td>
+            <td>{{i.pensioner.comm_rate}}</td>
+            <td>{{i.pensioner.dob}}</td>
+            <td>{{i.pensioner.doa}}</td>
+            <td>{{i.pensioner.dor}}</td>
+            <td>{{i.pensioner.dod}}</td>
+            <td>{{i.status}}</td>
+
+
+
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Charts script-->
+<script type="text/javascript">
           google.charts.load('current', { 'packages': ['corechart'] });
           google.charts.setOnLoadCallback(drawChart);
 
           function drawChart() {
 
             var data = google.visualization.arrayToDataTable([
-              ['Payment', 'Monthly'],
-              ['Med All 15', {{ ma2.tma2 }}],
-          ['Med All 10', {{ ma.tma }}],
-            ['Net Pension', {{ netpension.tp }}],
+              ['Payment', 'Monthly',{ role: "style" }],
+              ['Med All 15', {{ ma2 }},"#00cc00"],
+          ['Med All 10', {{ ma }},"#e600ac"],
+            ['Net Pension', {{ netpension }},"gold"],
             
           ]);
 
           var options = {
             title: 'Monthly Payments',
+            width: "100%",
+            height: 200,
+            bar: { groupWidth: "95%" },
+            legend: { position: "none" },
 
-            pieHole: 0.4,
+
           };
 
-          var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+          var chart = new google.visualization.ColumnChart(document.getElementById('piechart'));
 
           chart.draw(data, options);
         }
         </script>
-      </div>
-    </div>
-    <div class="col">
-      <div class="p-3 ">
-
-        <div id="3dchart" style="width: 500px; height: 300px;" class="container col-4 m-25">
+     <!-- Chart 2-->
           <script type="text/javascript">
             google.charts.load('current', { 'packages': ['corechart'] });
             google.charts.setOnLoadCallback(drawChart);
@@ -53,8 +366,10 @@
 
             var options = {
               title: 'Pensioner Types',
+              height: 200,
               slices: {
                 1: { offset: 0.3 },
+
 
               },
             };
@@ -64,65 +379,6 @@
             chart.draw(data, options);
           }
           </script>
-        </div>
-      </div>
-    </div>
-
-    <div class="col" style="height:150px;">
-      <div class="p-3  ">
-        <p> Total Pensioners: {{pensioner}}</p>
-      </div>
-
-    </div>
-    <div class="col" style="height:150px;">
-
-      <div class="p-3 ">
-        <p> Total Monthly Pension: Rs. {{netpension.tp|floatformat:0}}</p>
-        <p>Total Medical Allowance 2010: Rs. {{ma.tma|floatformat:0}}</p>
-        <p>Total Medical Allowance 2015: Rs. {{ma2.tma2|floatformat:0}}</p>
-      </div>
-
-    </div>
-    <div class="card col" style="height:250px;">
-      <div class="card-header bg-info responsive">Last Added Pensioner</div>
-      
-        <div class="card-body" >
-          <table class="table table-bordered">
-            <tr>
-              <th>PPO NO.</th>
-              <th>Name</th>
-            </tr>
-  
-           <tr>
-              <td>{{lts.ppo}}</td>
-              <td>{{lts.name}}</td>
-            </tr>
-            <tr>
-              <td>Restoration Due</td>
-              <td>{{rest_due}}</td>
-            </tr>
-          </table>
-          
-      </div>
-      <div class="card-footer bg-secondary"></div>
         
-      </div>
-    
-    
-    <div class="col" style="height:150px;">
-      <div class="p-3 ">
-        <p>Pensioners drawing less than Rs.50000</p>{{oldage}}
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<div class="row">
-  <div class="container col-lg-4">
-
-  </div>
-
-</div>
 
 {% endblock content %}

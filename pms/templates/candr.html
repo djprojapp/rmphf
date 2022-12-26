@@ -2,25 +2,59 @@
 {% load static %}
 {% load humanize %}
 {% block content %}
+<h3 class="bg-info text-center text-white">Calculation & Review</h3>
+{% if pensioner %}
+{% for p in pensioner %}
 
-<div class="p-3">
   <form action="candr" method="POST">
     {% csrf_token %}
-    <button type="submit" class="btn btn-info">Pensioner ID</button>
-    <input type="integer" name="number" placeholder="Pensioner ID" required>
+    <table class="table table-borderless table-responsive">
+      <tr>
+        <td>
+          <button type="submit" class="btn btn-info">PPO NO.</button>
+        </td>
+        <td>
+          <input type="integer" name="number" placeholder="PPO NO." value="{{p.ppo}}" required>
+        </td>
+      </tr>
+    
+    
+  </table>
+  </form>
+
+{% endfor %}
+{% else %}
+
+  <form action="candr" method="POST">
+    {% csrf_token %}
+    <table class="table table-borderless table-responsive">
+      <tr>
+        <td>
+          <button type="submit" class="btn btn-info">PPO NO.</button>
+        </td>
+        <td>
+          <input type="integer" name="number" placeholder="PPO NO." value="{{p.ppo}}" required>
+        </td>
+      </tr>
+    
+    
+  </table>
 
   </form>
-</div>
 
+{% endif %}
 {% if pensioner %}
+
 <div class="container header">
   <h3 class="centre" style="text-align:center;">SHAIKH ZAYED POSTGRADUATE MEDICAL INSTITUTE LAHORE</h3>
   <h4 class="centre" style="text-align:center;">Calculation & Review Sheet</h4>
 </div>
+
 <div class="row">
   <div class="col border border-secondary">
 
     {% for i in pensioner %}
+ 
     <table class="table table-bordered">
       <tr>
         <td>PPO No.</td>
@@ -28,7 +62,7 @@
       </tr>
       <tr>
         <td>Pensioner Name</td>
-        <td>{% for n in bank %}{{forloop.counter}}. {{n.pname}} =>{{n.payment_ratio}}%<br>{% endfor %}</td>
+        <td>{% for n in bank %}{{forloop.counter}}. {{n.pname}} =>{{n.payment_ratio}}%<br>{% empty %} <h6 class="fw-bold text-danger">Please Add Bank Details</h6>{% endfor %}</td>
       </tr>
       <tr>
         <td>Father's Name</td>
@@ -75,15 +109,15 @@
         <td>{{i.age}}</td>
       </tr>
         <td>Last Pay Drawn</td>
-        <td>Rs.{{i.lpd|intcomma}}</td>
+        <td>Rs.{{i.lpd|floatformat:0 | intcomma}}</td>
       </tr>
       <tr>
         <td>Gross Pension</td>
-        <td>Rs.{{i.gp|intcomma}}</td>
+        <td>Rs.{{i.gp|floatformat:0 | intcomma}}</td>
       </tr>
       <tr>
         <td>Net Pension</td>
-        <td>Rs.{{i.np|intcomma}}</td>
+        <td>Rs.{{i.np|floatformat:0 | intcomma}}</td>
       </tr>
       
       
@@ -97,13 +131,20 @@
       </tr>
       <tr>
         <td>Restoration Due on </td>
-        <td>{{i.restd}}</td>
+        <td>{{i.restd| date:"d-m-Y"}}</td>
       </tr>
       <tr>
         <td>Commutation </td>
-        <td>Rs.{{i.comm_amount|intcomma}}</td>
+        <td>Rs.{{i.comm_amount|floatformat:0 | intcomma}}</td>
       </tr>
-   
+    {% if ltr %}{% for l in ltr %}
+
+    <tr>
+      <td>{{l.description}} </td>
+      <td>Rs.{{l.principal|floatformat:0 | intcomma}}</td>
+    </tr>
+    {% endfor %}
+    {% endif %}
     </table>
     {% endfor %}
    
@@ -126,7 +167,7 @@
         <td style="font-style:bold;">{{i.description}}</td>
         <td>{{i.start_date}}</td>
         <td>{{i.rate}}</td>
-        <td>{{i.inc_amount}}</td>
+        <td>{{i.inc_amount|intcomma}}</td>
         
       </tr>
 
@@ -146,33 +187,33 @@
           </tr>
           <tr>
             <td>Net Pension</td>
-            <td>Rs.{{i.np|floatformat:0}}</td>
+            <td>Rs.{{i.np|floatformat:0 | intcomma}}</td>
           </tr>
 
           <tr>
             <td>Pension Increases</td>
-            <td>Rs.{{inc.tinc|floatformat:0}}</td>
+            <td>Rs.{{inc.tinc|floatformat:0 | intcomma}}</td>
           </tr>
           <tr>
             <td>Medical Allowance 2010</td>
-            <td>Rs.{{ma2010.inc_amount}}</td>
+            <td>Rs.{{ma2010.inc_amount|floatformat:0 | intcomma}}</td>
           </tr>
           <tr>
             <td>Medical Allowance 2010</td>
-            <td>Rs.{{ma2015.inc_amount}}</td>
+            <td>Rs.{{ma2015.inc_amount|floatformat:0 | intcomma}}</td>
           </tr>
           <tr class="fs-5 text-center fw-bold">
             <td>Total</td>
-            <td>Rs.{{i.tp|floatformat:0}}</td>
+            <td>Rs.{{i.tp|floatformat:0 | intcomma}}</td>
           </tr>
 
           {% endfor %}
 
-      </div>
+          {% for b in bank %}
       <tr>
         <td colspan="2" class="fw-bold text-center">Bank Details</td>
       </tr>
-      {% for b in bank %}
+      
 
       <tr>
         <td>Bank Name</td>
@@ -186,17 +227,19 @@
         <td>Bank Account</td>
         <td>{{b.acctno}}</td>
       </tr>
-
-
-      </table>
+      {% empty %}
+      <tr><td colspan="2" class="fw-bold text-danger">Please Add Bank Details</td></tr>
       {% endfor %}
+      </table>
+      
+      
       <br>
       <br>
       <br>
       <div class="card-footer text-center fw-bold fs-3">Accounts Officer</div>
     </div>
   </div>
-</div>
+
 
 
 

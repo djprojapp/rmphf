@@ -42,7 +42,11 @@ INSTALLED_APPS = [
     'pms.apps.PmsConfig',
     'loan.apps.LoanConfig',
     'accounts.apps.AccountsConfig',
-    'bootstrap5','django.contrib.humanize',
+    'bootstrap5',
+    'django.contrib.humanize',
+    'crispy_forms',
+    'crispy_bootstrap5',
+    
 
     
 ]

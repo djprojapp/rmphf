@@ -4,24 +4,49 @@ from datetime import datetime, date
 from django.db.models import Sum
 from django.contrib.auth.decorators import login_required
 from re import S
-from .models import Pensioner, BankAccount, Payment,  Status, Increases, Adjustment
+from .models import Pensioner, BankAccount, Payment,  Status, Increases, Adjustment, AdjustmentHistory, RecoveryInstallment
+from .forms import AdjustmentForm
+from django.contrib.postgres.search import SearchVector
 
+'''from django_xhtml2pdf.utils import generate_pdf
+from django_xhtml2pdf.utils import pdf_decorator
+'''
 
 # Create your views here.
+@login_required(login_url='accounts/login')
 def welcome(request):
     chart=Pensioner.objects.all()
     pensioner=Pensioner.objects.count()
     pen_cat1=Pensioner.objects.filter(cat='Family-DAR').count()
     pen_cat2=Pensioner.objects.filter(cat='Family-DIS').count()
     pen_cat3=Pensioner.objects.filter(cat='Self').count()
-    netpension=Pensioner.objects.all().aggregate(tp=Sum('np'))
-    ma=Pensioner.objects.all().aggregate(tma=Sum('ma2010'))
-    ma2=Pensioner.objects.all().aggregate(tma2=Sum('ma2015'))
-    lts=Pensioner.objects.latest('id')
+    netpension=Pensioner.objects.all().aggregate(Sum('np')).get('np__sum')
+    ma=Pensioner.objects.all().aggregate(Sum('ma2010')).get('ma2010__sum')
+    ma2=Pensioner.objects.all().aggregate(Sum('ma2015')).get('ma2015__sum')
+    pen=netpension+ma+ma2    
+    lts=Pensioner.objects.last()
     oldage=Pensioner.objects.filter(tp__lte=50000).count()
-    rest_due=Pensioner.objects.filter(restd__lte=date.today()).exclude(incm__gt=0).count()
-    return render(request, 'welcome.html',{'pensioner':pensioner, 'netpension': netpension,'oldage':oldage, 'ma':ma, 'ma2':ma2, 'chart':chart, 'pen_cat3':pen_cat3,'pen_cat1':pen_cat1,'pen_cat2':pen_cat2, 'lts':lts, 'rest_due':rest_due})
+    rest_due=Pensioner.objects.filter(restd__lte=date.today()).filter(cpr=0)
+    status=Status.objects.all()
+    return render(request, 'welcome.html',{'pen':pen, 'status':status, 'pensioner':pensioner, 'netpension': netpension,'oldage':oldage, 'ma':ma, 'ma2':ma2, 'chart':chart, 'pen_cat3':pen_cat3,'pen_cat1':pen_cat1,'pen_cat2':pen_cat2, 'lts':lts, 'rest_due':rest_due})
 
+@login_required(login_url='accounts/login')
+def self(request):
+    pen_cat3=Status.objects.filter(pensioner__cat='Self')
+    return render(request, 'self.html',{'pen_cat3':pen_cat3})
+
+@login_required(login_url='accounts/login')
+def family_dis(request):
+    pen_cat2=Status.objects.filter(pensioner__cat='Family-DIS')
+    return render(request, 'family-dis.html',{'pen_cat2':pen_cat2})
+    
+
+@login_required(login_url='accounts/login')
+def family_dar(request):
+    pen_cat1=Status.objects.filter(pensioner__cat='Family-DAR')
+    return render(request, 'family-dar.html',{'pen_cat1':pen_cat1})
+    
+@login_required(login_url='accounts/login')
 def add_new(request):
     if request.method=="POST":
         name=request.POST['name']
@@ -101,11 +126,18 @@ def add_new(request):
     else:
         return render(request, 'add_new.html')
 
+@login_required(login_url='accounts/login')
 def home(request):
-    pensioner=Pensioner.objects.all().order_by('ppo')
-    status=Status.objects.all().order_by('pensioner__ppo')
-    return render(request, 'home.html', {'pensioner': pensioner, 'status':status}) 
+    if request.method=="POST":
+        ppo=request.POST['ppo']
+        sr=Status.objects.annotate(search=SearchVector('pensioner__ppo','pensioner__name')).filter(search__icontains=ppo)
+        return render(request, 'home.html', {'sr':sr})
+    else:
+        pensioner=Pensioner.objects.all().order_by('ppo')
+        status=Status.objects.all().order_by('pensioner__ppo')
+        return render(request, 'home.html', {'pensioner': pensioner, 'status':status}) 
 
+@login_required(login_url='accounts/login')
 def revise(request):
     if request.method=="POST":
         ppo=request.POST['id']
@@ -117,6 +149,7 @@ def revise(request):
     else:
         return render(request, 'revise.html')
 
+@login_required(login_url='accounts/login')
 def calculate(request):
     if request.method=="POST":
         ppo=request.POST['id']
@@ -125,7 +158,7 @@ def calculate(request):
     else:
         return render(request, 'calculate.html')
 
-
+@login_required(login_url='accounts/login')
 def update(request, ppo):
     pensioner=Pensioner.objects.get(ppo=ppo)
     bank=BankAccount.objects.filter(pensioner__ppo=ppo)
@@ -290,12 +323,14 @@ def update(request, ppo):
             nqs=30
 
         Pensioner.objects.filter(ppo=ppo).update(rbs=rbs, bps=bps, name=name, pay=pay, dob=dob, doa=doa, dor=dor, dod=dod, fname=fname, ppo=ppo, designation=designation, address=address, cnic=cnic, qpay=qpay, ppay=ppay,spay=spay,ui=ui, opay=opay, cat=cat, qs=qs, lpd=lpd, age=age, comm_rate=comm_rate, dobf=dobf)
+        Status.objects.filter(ppo=ppo).update(status=status)
         
 
         return redirect("/home")
     else:
         return render(request, 'welcome.html')
-    
+
+@login_required(login_url='accounts/login')   
 def calculator(request, ppo):
     if request.method=="POST":
         ppo=request.POST.get('id', False)
@@ -306,6 +341,7 @@ def calculator(request, ppo):
         dod=pensioner.dod
         dobf=pensioner.dobf
         pensioner_id=pensioner.id
+        rest_allowed=request.POST['rest_allowed']
 
         d1,m1,y1= [int(x) for x in dob.split('-')]
         d2,m2,y2= [int(x) for x in doa.split('-')]
@@ -449,24 +485,24 @@ def calculator(request, ppo):
         gp=round(int(lpd)*nqs/30*0.7,2)
         #Net Pension
         if cat=="Self" and rbs>=2005:
-            npo=round(gp*0.65,2)
-            cpo=round(gp*0.35,2)
+            npo=round(gp*0.65,0)
+            cpo=round(gp*0.35,0)
         elif cat=="Self" and rbs<2005:
-            npo=round(gp*0.60,2)
-            cpo=round(gp*0.40,2)
+            npo=round(gp*0.60,0)
+            cpo=round(gp*0.40,0)
         elif cat=="Family-DIS":
-            npo=round(gp*0.75,2)
-            cpo=round(gp*0.25,2)
+            npo=round(gp*0.75,0)
+            cpo=round(gp*0.25,0)
         elif cat=="Family-DAR" and rbs>=2005:
-            npo=round(gp*0.65*0.75,2)
-            cpo=round(gp*0.35*0.75,2)
+            npo=round(gp*0.65*0.75,0)
+            cpo=round(gp*0.35*0.75,0)
         elif cat=="Family-DAR" and rbs<2005:
-            npo=round(gp*0.60*0.75,2)
-            cpo=round(gp*0.40*0.75,2)
+            npo=round(gp*0.60*0.75,0)
+            cpo=round(gp*0.40*0.75,0)
         np=npo
         cp=cpo
         #Commutation Amount Calculation
-        comm_amount=round(cp*12*comm_rate,2)
+        comm_amount=round(cp*12*comm_rate,0)
         #Date for increase conditions
         d2002=date(2002,7,1)
         d2005=date(2005,7,1)
@@ -502,6 +538,7 @@ def calculator(request, ppo):
         inc22=0
         incr22=0
         incm=0
+        cpr=0
         if cat=="Family-DIS":
             dr=dd
         #Minimum Pension
@@ -523,14 +560,14 @@ def calculator(request, ppo):
             mp75=11250.00
         #Increase wef 1.07.2003
         if dr<d2005:
-            inc03=round(np*0.15,2)
-            np=round(np+inc03,2)
-            cp=round(cp*1.15,2)
+            inc03=round(np*0.15,0)
+            np=round(np+inc03,0)
+            cp=round(cp*1.15,0)
             rate="15%"
             remarks="Increase 2003"
             if np<mp:
-                inc03=round(mp-np+inc03,2)
-                np=round(mp,2)
+                inc03=round(mp-np+inc03,0)
+                np=round(mp,0)
                 remarks="Mini Pension"
                 
             if dr>date(2003,7,1):
@@ -542,351 +579,387 @@ def calculator(request, ppo):
         #restoration
         d3=date(2003,7,1)
         d4=date(2004,7,1)
-        if d3<restd<d4:
-            incm=round(cp,2)
-            np=round(cp+np,2)
+        if d3<restd<d4  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,'-',incm,np])
+            inc.append([remarks,restore,'-',cpr,np])
         #Increase wef 1.07.2004
         if dr<d2005:
-            inc04=round(np*0.08,2)
-            cp=round(cp*1.08,2)
-            np=round(np+inc04,2)
+            inc04=round(np*0.08,0)
+            cp=round(cp*1.08,0)
+            np=round(np+inc04,0)
+            rate="08%"
             remarks="Increase 2004"
             if np<mp:
-                inc04=round(mp-np+inc04,2)
+                inc04=round(mp-np+inc04,0)
                 np=round(mp,2)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2004,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2004,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc04,np])
+            inc.append([remarks,wef,rate,inc04,np])
         #restoration
         d4=date(2004,7,1)
         d5=date(2005,7,1)
-        if d4<restd<d5:
-            incm=round(cp,2)
-            np=round(cp+np,2)
+        if d4<restd<d5  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,incm,np])
+            inc.append([remarks,restore,'-',cpr,np])
         #Increase wef 1.07.2005
         if dr<d2011:
-            inc05=round(np*0.10,2)
-            cp=round(cp*1.10,2)
-            np=round(np+inc05,2)
+            inc05=round(np*0.10,0)
+            cp=round(cp*1.10,0)
+            np=round(np+inc05,0)
             remarks="Increase 2005"
+            rate="10%"
             if np<mp:
-                inc05=round(mp-np+inc05,2)
-                np=round(mp,2)
+                inc05=round(mp-np+inc05,0)
+                np=round(mp,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2005,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2005,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc05,np])
+            inc.append([remarks,wef,rate,inc05,np])
 
         #restoration
         d5=date(2005,7,1)
         d6=date(2006,7,1)
-        if d5<restd<d6:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d5<restd<d6  and rest_allowed=="Yes":
+            cpr=round(cp,2)
+            np=round(cpr+np,2)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            inc.append([remarks,restore,'-',cpr,np])
         #Increase wef 1.07.2006
         if dr<d2011:
-            inc06=round(np*0.15,2)
-            cp=round(cp*1.15,2)
-            np=round(np+inc06,2)
+            inc06=round(np*0.15,0)
+            cp=round(cp*1.15,0)
+            np=round(np+inc06,0)
             remarks="Increase 2006"
+            rate="15%"
             if np<mp:
-                inc06=round(mp-np+inc06,2)
-                np=round(mp,2)
+                inc06=round(mp-np+inc06,0)
+                np=round(mp,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2006,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2006,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc06,np])
+            inc.append([remarks,wef,rate,inc06,np])
         #restoration
         d6=date(2006,7,1)
         d7=date(2007,7,1)
-        if d6<restd<d7:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d6<restd<d7  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            inc.append([remarks,restore,'-',cpr,np])
         #Increase wef 1.07.2007    
         if dr<d2007:
-            inc07=round(np*0.15,2)
-            cp=round(cp*1.15,2)
-            np=round(np+inc07,2)
+            inc07=round(np*0.15,0)
+            cp=round(cp*1.15,0)
+            np=round(np+inc07,0)
             remarks="Increase 2007"
+            rate="15%"
             if np<mp:
-                inc07=round(mp-np+inc07,2)
-                np=round(mp,2)
+                inc07=round(mp-np+inc07,0)
+                np=round(mp,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2007,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2007,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc07,np])
+            inc.append([remarks,wef,rate,inc07,np])
         #restoration
         d7=date(2007,7,1)
         d8=date(2008,7,1)
-        if d7<restd<d8:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d7<restd<d8  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            inc.append([remarks,restore,'-',cpr,np])
         #Increase wef 1.07.2008
         if dr<d2008:
-            inc08=round(np*0.20,2)
-            cp=round(cp*1.20,2)
-            np=round(np+inc08,2)
+            inc08=round(np*0.20,0)
+            cp=round(cp*1.20,0)
+            np=round(np+inc08,0)
             remarks="Increase 2008"
+            rate="20%"
             if np<mp08:
-                inc08=round(mp08-np+inc08,2)
-                np=round(mp08,2)
+                inc08=round(mp08-np+inc08,0)
+                np=round(mp08,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2008,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2008,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc08,np])
+            inc.append([remarks,wef,rate,inc08,np])
         #restoration
         d8=date(2008,7,1)
         d9=date(2009,7,1)
-        if d8<restd<d9:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d8<restd<d9  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            inc.append([remarks,restore,'-',cpr,np])
         #Increase wef 1.07.2009
         if dr<d2009:
-            inc09=round(np*0.15,2)
-            cp=round(cp*1.15,2)
-            np=round(np+inc09,2)
+            inc09=round(np*0.15,0)
+            cp=round(cp*1.15,0)
+            np=round(np+inc09,0)
             remarks="Increase 2009"
+            rate="15%"
             if np<mp08:
-                inc09=round(mp08-np+inc09,2)
-                np=round(mp08,2)
+                inc09=round(mp08-np+inc09,0)
+                np=round(mp08,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2009,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2009,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc09,np])
+            inc.append([remarks,wef,rate,inc09,np])
         #restoration
         d9=date(2009,7,1)
         d10=date(2010,7,1)
-        if d9<restd<d10:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d9<restd<d10  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            inc.append([remarks,restore,'-',cpr,np])
         #Increase wef 1.07.2010
         if dr<d2017:
-            inc10=round(np*0.15)
-            cp=round(cp*1.15)
-            np=round(np+inc10,2)
+            inc10=round(np*0.15,0)
+            cp=round(cp*1.15,0)
+            np=round(np+inc10,0)
             remarks="Increase 2010"
-            
+            rate="15%"
             if np<mp10:
                 inc10=round(mp10-np+inc10,2)
                 np=round(mp10,2)
                 remarks="Mini Pension"
-            
+                rate="Mini Increase"
             if dr>date(2010,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2010,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc10,np])
+            inc.append([remarks,wef,rate,inc10,np])
         #Medical Allowance 2010
         if bps<16:
-            ma2010=round(np*0.25,2)
+            ma2010=round(np*0.25,0)
             remarks="Medical Allowance 2010"
+            rate="25%"
             if dr>date(2010,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2010,7,1).strftime("%d-%m-%Y")
-            tp=np+ma2010
-            inc.append([remarks,wef,ma2010,tp])
+            tp=round(np+ma2010,0)
+            inc.append([remarks,wef,rate,ma2010,tp])
 
         else:
-            ma2010=round(np*.20,2)
+            ma2010=round(np*.20,0)
             remarks="Medical Allowance 2010"
+            rate="20%"
             if dr>date(2010,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2010,7,1).strftime("%d-%m-%Y")
-            tp=np+ma2010
-            inc.append([remarks,wef,ma2010,tp])
+            tp=round(np+ma2010,0)
+            inc.append([remarks,wef,rate,ma2010,tp])
         
         #restoration
         d10=date(2010,7,1)
         d11=date(2011,7,1)
-        if d10<restd<d11:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d10<restd<d11  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            tp=round(np+ma2010,0)
+            inc.append([remarks,restore,'-',cpr,tp])
         #Increase wef 1.07.2011
         if dr<d2002:
-            inc11=round(np*0.20,2)
-            cp=round(cp*1.20,2)
-            np=round(np+inc11,2)
+            inc11=round(np*0.20,0)
+            cp=round(cp*1.20,0)
+            np=round(np+inc11,0)
             remarks="Increase 2011"
+            rate="20%"
             if np<mp10:
-                inc11=round(mp10-np+inc11,2)
-                np=round(mp10,2)
-            
+                inc11=round(mp10-np+inc11,0)
+                np=round(mp10,0)
+                rate="Mini Increase"
                 remarks="Mini Pension"
             if dr>date(2011,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2011,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc11,np])
+            tp=round(np+ma2010,0)
+            inc.append([remarks,wef,rate,inc11,tp])
 
         elif dr>=d2002:
-            inc11=round(np*0.15,2)
-            np=round(np+inc11,2)
-            cp=round(cp*1.15,2)
+            inc11=round(np*0.15,0)
+            np=round(np+inc11,0)
+            cp=round(cp*1.15,0)
             remarks="Increase 2011"
+            rate="15%"
             if np<mp10:
-                inc11=round(mp10-np+inc11,2)
-                np=round(mp10,2)
+                inc11=round(mp10-np+inc11,0)
+                np=round(mp10,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2011,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2011,7,1).strftime("%d-%m-%Y")
-            tp=np+ma2010
-            inc.append([remarks,wef,inc11,tp])
+            tp=round(np+ma2010,0)
+            inc.append([remarks,wef,rate,inc11,tp])
         #restoration
         d11=date(2011,7,1)
         d12=date(2012,7,1)
-        if d11<restd<d12:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d11<restd<d12  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            tp=round(np+ma2010,0)
+            inc.append([remarks,restore,'-',cpr,tp])
         #Increase wef 1.07.2012
         if dr<d2015:
-            inc12=round(np*0.20,2)
-            cp=round(cp*1.20,2)
-            np=round(np+inc12,2)
+            inc12=round(np*0.20,0)
+            cp=round(cp*1.20,0)
+            np=round(np+inc12,0)
             remarks="Increase 2012"
+            rate="20%"
             if np<mp10:
-                inc12=round(mp10-inc12,2)
-                np=round(mp10,2)
+                inc12=round(mp10-inc12,0)
+                np=round(mp10,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2012,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2012,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc12,np])
+            tp=round(np+ma2010,0)
+            inc.append([remarks,wef,rate,inc12,tp])
         #restoration
         d12=date(2012,7,1)
         d13=date(2013,7,1)
-        if d12<restd<d13:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d12<restd<d13  and rest_allowed=="Yes":
+            cpr=round(cp,2)
+            np=round(cpr+np,2)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            tp=round(np+ma2010,0)
+            inc.append([remarks,restore,'-',cpr,tp])
         #Increase wef 1.07.2013
         if dr<d2016:
-            inc13=round(np*0.10,2)
-            cp=round(cp*1.10,2)
-            np=round(np+inc13,2)
+            inc13=round(np*0.10,0)
+            cp=round(cp*1.10,0)
+            np=round(np+inc13,0)
             remarks="Increase 2013"
+            rate="10%"
             if np<mp13:
-                inc13=round(mp13-np+inc13,2)
-                np=round(mp13,2)
+                inc13=round(mp13-np+inc13,0)
+                np=round(mp13,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2013,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2013,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc13,np])
+            tp=round(np+ma2010,0)
+            inc.append([remarks,wef,rate,inc13,tp])
         #restoration
         d13=date(2013,7,1)
         d14=date(2014,7,1)
-        if d13<restd<d14:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d13<restd<d14  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            tp=round(np+ma2010,0)
+            inc.append([remarks,restore,'-',cpr,tp])
         #Increase wef 1.07.2014
         if dr<d2016:
-            inc14=round(np*0.10,)
-            cp=round(cp*1.10,2)
-            np=round(np+inc14,2)
+            inc14=round(np*0.10,0)
+            cp=round(cp*1.10,0)
+            np=round(np+inc14,0)
             remarks="Increase 2014"
+            rate="10%"
             if np<mp14:
-                inc14=round(mp14-np+inc14,2)
-                np=round(mp14,2)
+                inc14=round(mp14-np+inc14,0)
+                np=round(mp14,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2014,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2014,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc14,np])
+            tp=round(np+ma2010,0)
+            inc.append([remarks,wef,rate,inc14,tp])
         #restoration
         d14=date(2014,7,1)
         d15=date(2015,7,1)
         if d14<restd<d15:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            tp=round(np+ma2010,0)
+            inc.append([remarks,restore,'-',cpr,tp])
         #Increase wef 1.07.2015
         if dr:
-            inc15=round(np*0.075,2)
-            cp=round(cp*1.075,2)
-            np=round(np+inc15,2)
+            inc15=round(np*0.075,0)
+            cp=round(cp*1.075,0)
+            np=round(np+inc15,0)
             remarks="Increase 2015"
+            rate="7.5%"
             if np<mp14:
-                inc15=round(mp14-np+inc15, 2)
-                np=round(mp14,2)
+                inc15=round(mp14-np+inc15, 0)
+                np=round(mp14,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2015,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2015,7,1).strftime("%d-%m-%Y")
-            tp=np+ma2010
-            inc.append([remarks,wef,inc15,tp])
+            tp=round(np+ma2010,0)
+            inc.append([remarks,wef,rate,inc15,tp])
         #Medical Allowance 2015
-        ma2015=round(ma2010*0.25,2)
+        ma2015=round(ma2010*0.25,0)
         remarks="Medical Allowance 2015"
+        rate="25%"
         if dr>date(2015,7,1):
             wef=dr.strftime("%d-%m-%Y")
         else:
             wef=date(2015,7,1).strftime("%d-%m-%Y")
-        tp=np+ma2010+ma2015
-        inc.append([remarks,wef,ma2015,tp])
+        tp=round(np+ma2010+ma2015,0)
+        inc.append([remarks,wef,rate,ma2015,tp])
         #restoration
         d15=date(2015,7,1)
         d16=date(2016,7,1)
-        if d15<restd<d16:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d15<restd<d16  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,restore,'-',cpr,tp])
         #Increase wef 1.07.2016
         if dr<=d2022:
             if cat=="Self":
@@ -895,266 +968,303 @@ def calculator(request, ppo):
                 age85=dbf.replace(dbf.year+85)
             
             if age85<=date.today():
-                inc16=round(np*0.25,2)
-                cp=round(cp*1.25,2)
-                np=round(np+inc16,2)
+                inc16=round(np*0.25,0)
+                cp=round(cp*1.25,0)
+                np=round(np+inc16,0)
+                rate="25%"
                 if age85<=d16:
-                    remarks="25% increase"
+                    remarks="Increase 2016"
                 else:
-                    remarks="25% increase "+age85.strftime("%d-%m-%Y")+" no arrear prior to this date"
+                    remarks="Increase 2016 "+age85.strftime("%d-%m-%Y")+" no arrear prior to this date"
             else:
-                inc16=round(np*0.10,2)
-                cp=round(cp*1.10,2)
-                np=round(np+inc16,2)
+                inc16=round(np*0.10,0)
+                cp=round(cp*1.10,0)
+                np=round(np+inc16,0)
                 remarks="Increase 2016"
+                rate="10%"
             if np<mp14:
-                inc16=round(mp14-np+inc16,2)
-                np=round(mp14,2)
+                inc16=round(mp14-np+inc16,0)
+                np=round(mp14,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2016,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2016,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc16,np])
-            print(age85)
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,wef,rate,inc16,tp])
+            
         #restoration
         d16=date(2016,7,1)
         d17=date(2017,7,1)
-        if d16<restd<d17:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d16<restd<d17  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
-            wef=restd.strftime("%d-%m-%Y")
-            restored.append([remarks,wef,cp,np])
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,restore,'-',cpr,tp])
+            
         #Increase wef 1.07.2017
         if dr<=d2022:
-            inc17=round(np*0.10,2)
-            cp=round(cp*1.10,2)
-            np=round(np+inc17,2)
+            inc17=round(np*0.10,0)
+            cp=round(cp*1.10,0)
+            np=round(np+inc17,0)
             remarks="Increase 2017"
+            rate="10%"
             if np<mp14:
-                inc17=round(mp14-np+inc17,2)
-                np=round(mp14,2)
+                inc17=round(mp14-np+inc17,0)
+                np=round(mp14,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2017,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2017,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc17,np])
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,wef,rate,inc17,tp])
         #restoration
         d17=date(2017,7,1)
         d18=date(2018,7,1)
-        if d17<restd<d18:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d17<restd<d18  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,restore,'-',cpr,tp])
         #Increase wef 1.07.2018
         if cat=="Self":
                 age75=db.replace(db.year+75)
         else:
                 age75=dbf.replace(dbf.year+75)
         if dr<=d2022:
-            inc18=round(np*0.10,2)
-            cp=round(cp*1.10,2)
-            np=round(np+inc18,2)
+            inc18=round(np*0.10,0)
+            cp=round(cp*1.10,0)
+            np=round(np+inc18,0)
             remarks="Increase 2018"
+            rate="10%"
             if age75 > date(2018,7,1) and np<mp18:
-                inc18=round(mp18-np+inc18,2)
-                np=round(mp18,2)
+                inc18=round(mp18-np+inc18,0)
+                np=round(mp18,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             elif age75 < date(2018,7,1) and np<mp75:
-                inc18=round(mp75-np+inc18,2)
-                np=round(mp75,2)
+                inc18=round(mp75-np+inc18,0)
+                np=round(mp75,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2018,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2018,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc18,np])
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,wef,rate,inc18,tp])
         #75years mini penison
             if age75<date(2019,7,1) and np<mp75:
-                incm=round(mp75-np,2)
-                np=round(mp75,2)
-                remarks="Note: Pensioner has attained 75 years age on "+age75.strftime("%d-%m-%Y")+"\nMini Pension"
+                incm=round(mp75-np,0)
+                np=round(mp75,0)
+                remarks="Note: Pensioner has attained 75 years age on "+age75.strftime("%d-%m-%Y")
+                rate="Mini Increase"
                 wef=age75.strftime("%d-%m-%Y")
-                inc.append([remarks,wef,incm,np])
+                tp=round(np+ma2010+ma2015,0)
+                inc.append([remarks,wef,rate,incm,tp])
         #restoration
         d18=date(2018,7,1)
         d19=date(2019,7,1)
-        if d18<restd<d19:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d18<restd<d19  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,restore,'-',cpr,tp])
         #Increase wef 1.07.2019
         if dr<=d2022:
-            inc19=round(np*0.10,2)
-            cp=round(cp*1.10,2)
-            np=round(np+inc19,2)
+            inc19=round(np*0.10,0)
+            cp=round(cp*1.10,0)
+            np=round(np+inc19,0)
             remarks="Increase 2019"
+            rate="10%"
             if age75 > date(2019,7,1) and np<mp18:
-                inc18=round(mp18-np+inc18,2)
+                inc18=round(mp18-np+inc18,0)
                 np=round(mp18,2)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             elif age75 < date(2019,7,1) and np<mp75:
-                inc18=round(mp75-np+inc18,2)
-                np=round(mp75,2)
+                inc18=round(mp75-np+inc18,0)
+                np=round(mp75,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2019,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2019,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc19,np])
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,wef,rate,inc19,tp])
         #75years mini penison
             if age75<date(2021,7,1) and np<mp75:
-                incm=round(mp75-np,2)
-                np=round(mp75,2)
-                remarks="Note: Pensioner has attained 75 years age on "+age75.strftime("%d-%m-%Y")+"\nMini Pension"
+                incm=round(mp75-np,0)
+                np=round(mp75,0)
+                remarks="Note: Pensioner has attained 75 years age on "+age75.strftime("%d-%m-%Y")
+                rate="Mini Increase"
                 wef=age75.strftime("%d-%m-%Y")
-                inc.append([remarks,wef,incm,np])
+                tp=round(np+ma2010+ma2015,0)
+                inc.append([remarks,wef,rate,incm,tp])
         #restoration
         d19=date(2019,7,1)
         d21=date(2021,7,1)
-        if d19<restd<d21:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d19<restd<d21  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,restore,'-',cpr,tp])
         #Increase wef 1.07.2021
         if dr<=d2022:
-            inc21=round(np*0.10,2)
-            cp=round(cp*1.10,2)
-            np=round(np+inc21,2)
+            inc21=round(np*0.10,0)
+            cp=round(cp*1.10,0)
+            np=round(np+inc21,0)
             remarks="Increase 2021"
+            rate="10%"
             if age75 > date(2021,7,1) and np<mp18:
-                inc18=round(mp18-np+inc18,2)
-                np=round(mp18,2)
+                inc18=round(mp18-np+inc18,0)
+                np=round(mp18,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             elif age75 < date(2021,7,1) and np<mp75:
-                inc18=round(mp75-np+inc18,2)
-                np=round(mp75,2)
+                inc18=round(mp75-np+inc18,0)
+                np=round(mp75,0)
                 remarks="Mini Pension"
+                rate="Mini Increase"
             if dr>date(2021,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2021,7,1).strftime("%d-%m-%Y")
-            inc.append([remarks,wef,inc21,np])
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,wef,rate,inc21,tp])
         #75years minimum pension
             if age75<date(2022,4,1) and np<mp75:
-                incm=round(mp75-np,2)
-                np=round(mp75,2)
-                remarks="Note: Pensioner has attained 75 years age on "+age75.strftime("%d-%m-%Y")+"\nMini Pension"
+                incm=round(mp75-np,0)
+                np=round(mp75,0)
+                remarks="Note: Pensioner has attained 75 years age on "+age75.strftime("%d-%m-%Y")
+                rate="Mini Increase"
                 wef=age75.strftime("%d-%m-%Y")
-                inc.append([remarks,wef,incm,np])
+                tp=round(np+ma2010+ma2015,0)
+                inc.append([remarks,wef,incm,tp])
         #restoration
         d21=date(2021,7,1)
         d22=date(2022,4,1)
-        if d21>restd>d22:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d21>restd>d22  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,restore,'-',cpr,tp])
         #Increase wef 1.04.2022
             if dr<=d2022:
-                inc22=round(np*0.10,2)
-                cp=round(cp*1.102)
-                np=round(np+inc22,2)
+                inc22=round(np*0.10,0)
+                cp=round(cp*1.10,0)
+                np=round(np+inc22,0)
                 remarks="Increase April 22"
-                rate=10
+                rate="10%"
                 if age75 > date(2022,4,1) and np<mp18:
-                    inc22=round(mp18-np+inc22,2)
-                    np=round(mp18,2)
+                    inc22=round(mp18-np+inc22,0)
+                    np=round(mp18,0)
                     remarks="Mini Pension"
                     rate="Mini Increase"
                 elif age75 < date(2022,4,1) and np<mp75:
-                    inc22=round(mp75-np+inc22,2)
-                    np=round(mp75,2)
+                    inc22=round(mp75-np+inc22,0)
+                    np=round(mp75,0)
                     remarks="Mini Pension"
                     rate="Mini Increase"
                 if dr>date(2022,4,1):
                     wef=dr.strftime("%d-%m-%Y")
                 else:
                     wef=date(2022,4,1).strftime("%d-%m-%Y")
-                inc.append([remarks,wef,inc22,np])
+                tp=round(np+ma2010+ma2015,0)
+                inc.append([remarks,wef,rate,inc22,tp])
             #75years minimum pension
             if age75<date(2022,7,1) and np<mp75:
-                incm=round(mp75-np,2)
-                np=round(mp75,2)
+                incm=round(mp75-np,0)
+                np=round(mp75,0)
                 rate="Mini Increase"
-                remarks="Note: Pensioner has attained 75 years age on "+age75.strftime("%d-%m-%Y")+"\nMini Pension"
+                remarks="Note: Pensioner has attained 75 years age on "+age75.strftime("%d-%m-%Y")
+                rate="Mini Increase"
                 wef=age75.strftime("%d-%m-%Y")
-                inc.append([remarks,wef,incm,np])
-                tp=np+ma2010+ma2015 
+                tp=round(np+ma2010+ma2015,0)
+                inc.append([remarks,wef,rate,incm,tp])
+                 
 
             #restoration
             d22=date(2022,4,1)
             d222=date(2022,7,1)
-            if d22>restd>d222:
-                cp=round(cp,2)
-                np=round(cp+np,2)
+            if d22>restd>d222  and rest_allowed=="Yes":
+                cpr=round(cp,0)
+                np=round(cpr+np,0)
                 restore=restd.strftime("%d-%m-%Y")
                 remarks="Restored"
-                inc.append([remarks,restore,cp,np])
+                tp=round(np+ma2010+ma2015,0)
+                inc.append([remarks,restore,'-',cpr,tp])
         #Increase 01.07.2022
         if dr:
-            incr22=round((np-inc22)*.15,2)
-            np=round(np-inc22+incr22,2)
-            rate=15
+            incr22=round((np-inc22)*.15,0)
+            np=round(np-inc22+incr22,0)
+            rate="15%"
             remarks="Increase July 22"
             if age75 > date(2022,7,1) and np<mp18:
-                incr22=round(mp18-np+incr22,2)
-                np=round(mp18,2)
+                incr22=round(mp18-np+incr22,0)
+                np=round(mp18,0)
                 remarks="Mini Pension"
                 rate="Mini Increase"
             elif age75 < date(2022,7,1) and np<mp75:
-                incr22=round(mp75-np+incr22,2)
-                np=round(mp75,2)
+                incr22=round(mp75-np+incr22,0)
+                np=round(mp75,0)
                 remarks="Mini Pension"
                 rate="Mini Increase"
             if dr>date(2022,7,1):
                 wef=dr.strftime("%d-%m-%Y")
             else:
                 wef=date(2022,7,1).strftime("%d-%m-%Y")
-            tp=np+ma2010+ma2015
-            inc.append([remarks,wef,incr22,tp])
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,wef,rate,incr22,tp])
         #75years minimum pension
         d23=date.today()
         if age75<date.today() and np<mp75:
-            incm=round(mp75-np,2)
-            np=round(mp75,2)
+            incm=round(mp75-np,0)
+            np=round(mp75,0)
             rate="Mini Increase"
-            remarks="Note: Pensioner has attained 75 years age on "+age75.strftime("%d-%m-%Y")+"\nMini Pension"
+            remarks="Note: Pensioner has attained 75 years age on "+age75.strftime("%d-%m-%Y")
+            rate="Mini Increase"
             wef=age75.strftime("%d-%m-%Y")
-            inc.append([remarks,wef,incm,np])
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,wef,rate,incm,tp])
         #restoration
         d222=date(2022,7,1)
         d23=date.today()
-        if d222>restd>d23:
-            cp=round(cp,2)
-            np=round(cp+np,2)
+        if d222>restd>d23  and rest_allowed=="Yes":
+            cpr=round(cp,0)
+            np=round(cpr+np,0)
             restore=restd.strftime("%d-%m-%Y")
             remarks="Restored"
-            inc.append([remarks,restore,cp,np])
-        tp=np+ma2010+ma2015    
-        restd=restd.strftime("%d-%m-%Y")
-        pensioner=Pensioner.objects.filter(ppo=ppo).update(incm=incm, age=age, qs=qs, comm_rate=comm_rate, cat=cat, restd=restd, gp=gp, np=npo, comm_amount=comm_amount,inc03=inc03, inc04=inc04, inc05=inc05, inc06=inc06, inc07=inc07, inc08=inc08, inc09=inc09, inc10=inc10, inc11=inc11, inc12=inc12, inc13=inc13, inc14=inc14, inc15=inc15,inc16=inc16,inc17=inc17,inc18=inc18,inc19=inc19,inc21=inc21, inc22=inc22,incr22=incr22, ma2010=ma2010, ma2015=ma2015, cp=cpo, tp=tp)
+            tp=round(np+ma2010+ma2015,0)
+            inc.append([remarks,restore,'-',cpr,tp])
+        tp=round(np+ma2010+ma2015,0)    
+        restd=restd
+        pensioner=Pensioner.objects.filter(ppo=ppo).update(cpr=cpr,incm=incm, age=age, qs=qs, comm_rate=comm_rate, cat=cat, restd=restd, gp=gp, np=npo, comm_amount=comm_amount,inc03=inc03, inc04=inc04, inc05=inc05, inc06=inc06, inc07=inc07, inc08=inc08, inc09=inc09, inc10=inc10, inc11=inc11, inc12=inc12, inc13=inc13, inc14=inc14, inc15=inc15,inc16=inc16,inc17=inc17,inc18=inc18,inc19=inc19,inc21=inc21, inc22=inc22,incr22=incr22, ma2010=ma2010, ma2015=ma2015, cp=cpo, tp=tp)
         inrs=Increases.objects.filter(ppo=ppo).delete()
         for n in inc:
             description=n[0]
             start_date=n[1]
-            inc_amount=n[2]
-            tp_amount=n[3]
-            increase=Increases.objects.create(pensioner_id=pensioner_id,ppo=ppo, description=description, start_date=start_date, inc_amount=inc_amount, tp_amount=tp_amount)
-        
+            rate=n[2]
+            inc_amount=n[3]
+            tp_amount=n[4]
+            increase=Increases.objects.create(pensioner_id=pensioner_id,ppo=ppo, description=description, start_date=start_date, inc_amount=inc_amount, tp_amount=tp_amount, rate=rate)
         return redirect("/candr")
-    
+
+@login_required(login_url='accounts/login')   
 def candr(request):
     if request.method=="POST":
         ppo=request.POST['number']
@@ -1165,10 +1275,13 @@ def candr(request):
         tp=Increases.objects.filter(ppo=ppo).aggregate(total=Sum('inc_amount'))
         ma2010=Increases.objects.filter(ppo=ppo).get(description='Medical Allowance 2010')
         ma2015=Increases.objects.filter(ppo=ppo).get(description='Medical Allowance 2015')
-        return render(request, 'candr.html', {'pensioner':pensioner, 'bank':bank, 'increase':increase, 'inc':inc, 'ma2010':ma2010, 'ma2015':ma2015, 'tp':tp})
+        adj=AdjustmentHistory.objects.filter(ppo=ppo).last()
+        ltr=RecoveryInstallment.objects.filter(ppo=ppo)
+        return render(request, 'candr.html', {'pensioner':pensioner, 'bank':bank, 'increase':increase, 'inc':inc, 'ma2010':ma2010, 'ma2015':ma2015, 'tp':tp, 'adj':adj, 'ltr':ltr})
     else:
         return render(request, 'candr.html')
 
+@login_required(login_url='accounts/login')
 def listcontent(request):
     try:
         if request.method=="POST" and "listcontent" in request.POST:
@@ -1980,12 +2093,10 @@ def listcontent(request):
                 inc.append([remarks,restore,'-',cp,np])
             #Increase 01.07.2022
             if dr:
-                print(np)
                 incr22=round((np-inc22)*.15,2)
                 np=round(np-inc22+incr22,2)
                 rate=15
                 remarks="Increase July 22"
-                print(np)
                 if age75 > date(2022,7,1) and np<mp18:
                     incr22=round(mp18-np+incr22,2)
                     np=round(mp18,2)
@@ -2028,53 +2139,87 @@ def listcontent(request):
         message="Alert!  Enter data in correct format"
         return render(request, 'car.html', {'message':message})
     
-
+@login_required(login_url='accounts/login')
 def payment(request):
     if request.method=="POST":
         month=request.POST['from']
         year=request.POST['to']
         b=BankAccount.objects.all().filter(pensioner__status__status='Active')
-        for i in b:
-            pensioner_id=i.pensioner.id
-            ppo=i.ppo
-            pname=i.pname
-            comm_amount=i.pensioner.comm_amount
-            inc11=i.pensioner.inc11
-            inc15=i.pensioner.inc15
-            inc22=i.pensioner.inc22
-            incr22=i.pensioner.incr22
-            tp=i.pensioner.tp*(i.payment_ratio)/100
-            bb=i.bb
-            acctno=i.acctno
-            np=Payment.objects.create(pensioner_id=pensioner_id,pname=pname,bb=bb, acctno=acctno, ppo=ppo,comm_amount=comm_amount, inc11=inc11, inc15=inc15,inc22=inc22, incr22=incr22, tp=tp, month=month, year=year)
-        
-        p=Payment.objects.all().order_by('month').order_by('year')
-        return render(request, 'payment.html', {'p':p})
+        try:
+            for i in b:
+                pensioner_id=i.pensioner.id
+                ppo=i.ppo
+                pname=i.pname
+                np=i.pensioner.np
+                increases=int(i.pensioner.inc03)+int(i.pensioner.inc04)+int(i.pensioner.inc05)+int(i.pensioner.inc06)+int(i.pensioner.inc07)+int(i.pensioner.inc08)+int(i.pensioner.inc09)+int(i.pensioner.inc10)+int(i.pensioner.inc11)+int(i.pensioner.inc12)+int(i.pensioner.inc13)+int(i.pensioner.inc14)+int(i.pensioner.inc15)+int(i.pensioner.inc16)+int(i.pensioner.inc17)+int(i.pensioner.inc18)+int(i.pensioner.inc19)+int(i.pensioner.inc21)+int(i.pensioner.inc22)+int(i.pensioner.incr22)
+                ar=Adjustment.objects.filter(pensioner_id=i.pensioner.id).filter(p_type='p')
+                arrears=0
+                for j in ar:
+                    arrears +=j.amount
+                re=Adjustment.objects.filter(pensioner_id=i.pensioner.id).filter(p_type='d')
+                recoveries=0
+                for k in re:
+                    recoveries +=k.amount
+                ma2010=i.pensioner.ma2010
+                ma2015=i.pensioner.ma2015
+                rins=0
+                ri=RecoveryInstallment.objects.filter(pensioner_id=i.pensioner_id)
+                for n in ri:
+                    rins=n.installment
+                    recovered=n.recovered
+                    balance=n.balance
+                    if rins>balance:
+                        rins=balance                
+                    recovered +=rins
+                    balance -= rins
+                    RecoveryInstallment.objects.filter(pensioner_id=i.pensioner_id).update(balance=balance, recovered=recovered)
+
+                tp=(np+increases+ma2010+ma2015+arrears-recoveries-rins)*(i.payment_ratio)/100
+                bb=i.bb
+                bname=i.bname
+                acctno=i.acctno
+                np=Payment.objects.create(pensioner_id=pensioner_id,pname=pname,bb=bb, bname=bname, acctno=acctno, ppo=ppo,np=np,increases=increases,arrears=arrears,recoveries=recoveries, ma2010=ma2010, ma2015=ma2015, tp=tp, month=month, year=year)
+            adj=Adjustment.objects.all()
+            for a in adj:
+                pensioner_id=a.pensioner_id
+                ppo=a.ppo
+                description=a.description
+                amount=a.amount
+                p_type=a.p_type
+                adjhis=AdjustmentHistory.objects.create(ppo=ppo, pensioner_id=pensioner_id,description=description,amount=amount,p_type=p_type)
+            adj.delete()
+            p=Payment.objects.all().order_by('month').order_by('year')
+            return render(request, 'payment.html', {'p':p})
+        except:
+            msg="Payment already processed for the month: "+month+"/"+year
+            return render(request, 'payment.html', {'msg':msg})
     else:
         return render(request, 'payment.html')
-
+@login_required(login_url='accounts/login')
 def bankadvice(request):
     if request.method=="POST":
         month=request.POST['from']
         year=request.POST['to']
-        advice=Payment.objects.filter(month=month).filter(year=year)
+        advice=Payment.objects.filter(month=month).filter(year=year).order_by('bname')
         return render(request, 'bankadvice.html', {'advice':advice})
     else:
         return render(request, 'bankadvice.html')
     
-
+@login_required(login_url='accounts/login')
 def display_bankaccount(request):
     bankaccount=BankAccount.objects.all().order_by('ppo')
     return render(request, 'display_bankaccount.html', {'bankaccount':bankaccount})
 
-
+@login_required(login_url='accounts/login')
 def add_ba(request):
     if request.method=="POST":
         ppo=request.POST['ppo']
-        p=Pensioner.objects.filter(ppo=ppo)
-        return render(request, 'add_bankaccount.html', {'p':p})
+        pensioner=Pensioner.objects.filter(ppo=ppo)
+        bank=BankAccount.objects.filter(ppo=ppo)
+        return render(request, 'add_bankaccount.html', {'pensioner':pensioner, 'bank':bank})
     else:
         return render(request, 'add_bankaccount.html')
+@login_required(login_url='accounts/login')
 def add_bankaccount(request, ppo):
     p=Pensioner.objects.get(ppo=ppo)
     ppo=p.ppo
@@ -2091,10 +2236,12 @@ def add_bankaccount(request, ppo):
     else:
         return render(request, 'add_bankaccount.html') 
     
+@login_required(login_url='accounts/login')
 def delete_bankaccount(request, id):
     ba=BankAccount.objects.get(id=id).delete()
     return redirect('/display_bankaccount')
 
+@login_required(login_url='accounts/login')
 def edit_bankaccount(request, id):
     ea=BankAccount.objects.get(id=id)
     if request.method=="POST":
@@ -2108,15 +2255,76 @@ def edit_bankaccount(request, id):
     else:
         return render(request, 'edit_bankaccount.html') 
 
+@login_required(login_url='accounts/login')
 def edit_ba(request, id):
     ea=BankAccount.objects.filter(id=id)
     return render(request, 'edit_bankaccount.html', {'ea':ea})
         
 
+@login_required(login_url='accounts/login')
 def search(request):
     if request.method=="POST":
         ppo=request.POST['ppo']
-        ba=BankAccount.objects.filter(ppo=ppo)
+        ba=BankAccount.objects.annotate(search=SearchVector('ppo','pname','bname')).filter(search__icontains=ppo)
         return render(request, 'display_bankaccount.html', {'ba':ba}) 
+@login_required(login_url='accounts/login')
+def adjustments(request):
+    if request.method=="POST":
+        ppo=request.POST['ppo']
+        p=Pensioner.objects.filter(ppo=ppo)
+        return render(request, 'adjustment.html', {'p':p})
+    else:
+        return render(request, 'adjustment.html')
 
-    
+@login_required(login_url='accounts/login')
+def adjustment(request,ppo):
+    p=Pensioner.objects.get(ppo=ppo)
+    ppo=p.ppo
+    pensioner_id=p.id
+    if request.method=="POST":
+        description=request.POST['description'] 
+        amount=request.POST['amount'] 
+        p_type=request.POST['p_type']
+        adj=Adjustment.objects.create(ppo=ppo, pensioner_id=pensioner_id,description=description,amount=amount,p_type=p_type)  
+        return redirect ('/adjustments')
+    else:
+        return render (request, 'adjustment.html')
+
+
+'''@pdf_decorator(pdfname='candr.pdf')
+def myview(request,ppo):
+    pensioner=Pensioner.objects.get(ppo=ppo)
+    pensioner=Pensioner.objects.filter(ppo=ppo)
+    bank=BankAccount.objects.filter(ppo=ppo)
+    increase=Increases.objects.filter(ppo=ppo).order_by('id')
+    inc=Increases.objects.filter(ppo=ppo).exclude(description='Medical Allowance 2010').exclude(description='Medical Allowance 2015').aggregate(tinc=Sum('inc_amount'))
+    tp=Increases.objects.filter(ppo=ppo).aggregate(total=Sum('inc_amount'))
+    ma2010=Increases.objects.filter(ppo=ppo).get(description='Medical Allowance 2010')
+    ma2015=Increases.objects.filter(ppo=ppo).get(description='Medical Allowance 2015')
+    adj=AdjustmentHistory.objects.filter(ppo=ppo).latest('id')
+    return render(request, 'candr.html', {'pensioner':pensioner, 'bank':bank, 'increase':increase, 'inc':inc, 'ma2010':ma2010, 'ma2015':ma2015, 'tp':tp, 'adj':adj})
+'''
+@login_required(login_url='accounts/login')
+def recovery(request):
+    if request.method=="POST":
+        ppo=request.POST['ppo']
+        p=Pensioner.objects.filter(ppo=ppo)
+        r=RecoveryInstallment.objects.filter(ppo=ppo)
+        return render(request, 'recovery.html', {'p':p, 'r':r})
+    else:
+        return render(request, 'recovery.html')
+@login_required(login_url='accounts/login')
+def rop(request,ppo):
+    p=Pensioner.objects.get(ppo=ppo)
+    ppo=p.ppo
+    pensioner_id=p.id
+    if request.method=="POST":
+        description=request.POST['description'] 
+        principal=request.POST['principal']
+        installment=request.POST['installment'] 
+        recovered=request.POST['recovered']
+        balance=request.POST['balance']
+        adj=RecoveryInstallment.objects.create(ppo=ppo, pensioner_id=pensioner_id,description=description,principal=principal,installment=installment,recovered=recovered, balance=balance)  
+        return redirect ('/recovery')
+    else:
+        return render (request, 'recovery.html')

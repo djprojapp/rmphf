@@ -39,6 +39,7 @@ class Pensioner(models.Model):
     incr22=models.FloatField(null=True)
     incm=models.FloatField(null=True)
     cp=models.FloatField(null=True)
+    cpr=models.FloatField(null=True)
     ma2010=models.FloatField(null=True)
     ma2015=models.FloatField(null=True)
     tp=models.FloatField(null=True)
@@ -55,7 +56,7 @@ class Pensioner(models.Model):
     cat=models.CharField(max_length=200, null=True)
     address=models.CharField(max_length=200, null=True)
     designation=models.CharField(max_length=50, null=True)
-    restd=models.CharField(max_length=20,null=True)
+    restd=models.DateField(null=True)
 
 class Status(models.Model):
     pensioner=models.ForeignKey(Pensioner, on_delete=models.CASCADE)
@@ -77,29 +78,10 @@ class Payment(models.Model):
     ppo=models.CharField(max_length=9, null=True)
     month=models.IntegerField(null=True)
     year=models.IntegerField(null=True)
-    comm_amount=models.FloatField(null=True)
-    inc03=models.FloatField(null=True)
-    inc04=models.FloatField(null=True)
-    inc05=models.FloatField(null=True)
-    inc06=models.FloatField(null=True)
-    inc07=models.FloatField(null=True)
-    inc08=models.FloatField(null=True)
-    inc09=models.FloatField(null=True)
-    inc10=models.FloatField(null=True)
-    inc11=models.FloatField(null=True)
-    inc12=models.FloatField(null=True)
-    inc13=models.FloatField(null=True)
-    inc14=models.FloatField(null=True)
-    inc15=models.FloatField(null=True)
-    inc16=models.FloatField(null=True)
-    inc17=models.FloatField(null=True)
-    inc18=models.FloatField(null=True)
-    inc19=models.FloatField(null=True)
-    inc21=models.FloatField(null=True)
-    inc22=models.FloatField(null=True)
-    incr22=models.FloatField(null=True)
-    incm=models.FloatField(null=True)
-    cp=models.FloatField(null=True)
+    np=models.IntegerField(null=True)
+    increases=models.IntegerField(null=True)
+    arrears=models.IntegerField(null=True)
+    recoveries=models.IntegerField(null=True)
     ma2010=models.FloatField(null=True)
     ma2015=models.FloatField(null=True)
     tp=models.FloatField(null=True)
@@ -118,6 +100,13 @@ class Adjustment(models.Model):
     amount=models.IntegerField(null=True)
     p_type=models.CharField(max_length=1)
 
+class AdjustmentHistory(models.Model):
+    pensioner=models.ForeignKey(Pensioner, on_delete=models.CASCADE)
+    ppo=models.CharField(max_length=9, null=True)
+    description=models.CharField(max_length=50, null=True, blank=True)
+    amount=models.IntegerField(null=True)
+    p_type=models.CharField(max_length=1)
+
 class Increases(models.Model):
     pensioner=models.ForeignKey(Pensioner, on_delete=models.CASCADE)
     ppo=models.CharField(max_length=9, null=True)
@@ -129,5 +118,19 @@ class Increases(models.Model):
 
     class Meta:
         verbose_name_plural="increases"
+
+class RecoveryInstallment(models.Model):
+    pensioner=models.ForeignKey(Pensioner, on_delete=models.CASCADE)
+    ppo=models.CharField(max_length=9, null=True)
+    description=models.CharField(max_length=20, null=True)
+    principal=models.IntegerField(null=True)
+    installment=models.IntegerField(null=True)
+    recovered=models.IntegerField(null=True)
+    balance=models.IntegerField(null=True)
+    start_date=models.DateField(null=True, auto_now_add=True)
+
+
+
+
         
     

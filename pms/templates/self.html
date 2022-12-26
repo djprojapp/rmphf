@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block content %}
+<h3 class="bg-light text-center text-success">Self Pensioners</h3>
+
+
+{% if pen_cat3 %}
+
+<table class="table table-hover table-borderless table-responsive" id="datatablesSimple">
+    <thead>
+      
+    <tr>
+        <th>PPO No.</th>
+        <th>Name</th>
+        <th>Pay</th>
+        <th>Age</th>
+        <th>Qualifying Service</th>
+        <th>Commutation Rate</th>
+        <th>Date of Birth</th>
+        <th>Date of Appointment</th>
+        <th>Date of Retirement</th>
+        <th>Date of Death</th>
+        <th>Status</th>    
+    </tr>
+</thead>
+<tbody>
+    
+    {% for i in pen_cat3 %}
+   
+    <tr>
+        <td>{{i.pensioner.ppo}}</td>
+        <td>{{i.pensioner.name}}</td>
+        <td>{{i.pensioner.lpd | intcomma}}</td>
+        <td>{{i.pensioner.age}}</td>
+        <td>{{i.pensioner.qs}}</td>
+        <td>{{i.pensioner.comm_rate}}</td>
+        <td>{{i.pensioner.dob}}</td>
+        <td>{{i.pensioner.doa}}</td>
+        <td>{{i.pensioner.dor}}</td>
+        <td>{{i.pensioner.dod}}</td>
+        <td>{{i.status}}</td>
+    </tr>
+    
+    {% endfor %}
+  
+</tbody>
+</table>
+{% endif %}
+
+
+{% endblock content %}

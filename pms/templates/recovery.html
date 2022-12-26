@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% block title %} Recovery in Installments {% endblock title %}
+{% block content %}
+{% load crispy_forms_tags %}
+<h3 class="bg-info text-center text-white">Recovery in Installments</h3>
+
+{% if p %}
+<form action="recovery" method="POST">
+    {% csrf_token %}
+    <table class="table table-responsive table-borderless">
+    {% for i in p %}
+    <tr>
+      <td>
+        <button type="submit" class="btn btn-info">PPO NO.</button>
+      </td>
+      <td>
+        <input type="integer" name="ppo" placeholder="PPO NO." value="{{i.ppo}}" required>
+      </td>
+    </tr>
+    
+    
+{% endfor %}
+  </form>
+  {% else %}
+  <form action="recovery" method="POST">
+    {% csrf_token %}
+    <table class="table table-responsive table-borderless">
+      <tr>
+        <td>
+          <button type="submit" class="btn btn-info">PPO NO.</button>
+        </td>
+        <td>
+          <input type="integer" name="ppo" placeholder="PPO NO." value="{{i.ppo}}" required>
+        </td>
+      </tr>
+    </table>
+  </form>
+  {% endif %}
+{% for i in p %}
+  <form class="form-floating" action="rop/{{i.ppo}}" method="POST" class="form-inline">
+    {% csrf_token %}
+    {% if r %}
+    {% for i in r %}
+    <tr class="fw-bold bg-info"><td colspan="2">{{forloop.counter}}.<b>{{i.description}}</b></td></tr>
+      <tr>
+        <td><label>Descriptsion</label></td>
+        <td><input type="text" name="description" placeholder="Description" value="{{i.description}}"required></td>
+        
+      </tr>
+      <tr>
+        <td><label>Total Recovery</label></td>
+        <td><input type="integer" name="principal" placeholder="Total Amount" value="{{i.principal}}" required></td>
+        
+      </tr>
+      <tr>
+        <td><label>Installment Rate</label></td>
+        <td><input type="integer" name="installment" placeholder="Recovery per Month" value="{{i.installment}}" required></td>
+        
+      </tr>
+      <tr>
+        <td><label>Recovered Amount</label></td>
+        <td><input type="integer" name="recovered" placeholder="Recovered Amount" value="{{i.recovered}}" required></td>
+        
+      </tr>
+      <tr>
+        <td><label>Balance</label></td>
+        <td><input type="integer" name="balance" placeholder="Balance" value="{{i.balance}}" required></td>
+        
+      </tr>
+      {% endfor %}
+      {% else %}
+      <tr>
+        <td><label>Descriptsion</label></td>
+        <td><input type="text" name="description" placeholder="Description" required></td>
+        
+      </tr>
+      <tr>
+        <td><label>Total Recovery</label></td>
+        <td><input type="integer" name="principal" placeholder="Total Amount"  required></td>
+        
+      </tr>
+      <tr>
+        <td><label>Installment Rate</label></td>
+        <td><input type="integer" name="installment" placeholder="Recovery per Month"  required></td>
+        
+      </tr>
+      <tr>
+        <td><label>Recovered Amount</label></td>
+        <td><input type="integer" name="recovered" placeholder="Recovered Amount"  required></td>
+        
+      </tr>
+      <tr>
+        <td><label>Balance</label></td>
+        <td><input type="integer" name="balance" placeholder="Balance"  required></td>
+        
+      </tr>
+{% endif %}
+      <tr>
+        <td colspan="2"><button class="btn btn-primary" type="submit">Save</button></td>
+        
+        
+      </tr>
+    
+
+</form>
+{% endfor %}
+</table>
+{% endblock content %}
